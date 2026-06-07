@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Arduino.h>
+#include <Types/StaticString.hpp>
+#include <Hardware.hpp>
 
 namespace task {
 
@@ -8,7 +10,8 @@ class Task {
  protected:
   Task();
 
-  TaskHandle_t handle;
+  TaskHandle_t handle{nullptr};
+  typ::StaticString<16> name{"unnamed"};
 
   [[nodiscard]] virtual bool setup() = 0;
   virtual void shutdown()            = 0;
@@ -24,7 +27,13 @@ class Task {
 
  public:
   constexpr static BaseType_t RealTimeCore{0};
+
+#if BOARD_NUM_CORES > 1
   constexpr static BaseType_t NonRealTimeCore{1};
+#else
+  constexpr static BaseType_t NonRealTimeCore{0};
+#endif
+
 
   constexpr static UBaseType_t LowPriority{1};
   constexpr static UBaseType_t MediumPriority{2};

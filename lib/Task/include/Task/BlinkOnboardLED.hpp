@@ -9,8 +9,9 @@ namespace task {
 void ledBlinkTask(void* pvParameters);
 
 class TaskBlinkOnboardLED : public Task {
+  friend void ledBlinkTask(void* pvParameters);
 
-  constexpr static uint32_t STACK_DEPTH{256};
+  constexpr static uint32_t STACK_DEPTH{2048};
   [[nodiscard]] bool setup() override;
   void shutdown() override;
 

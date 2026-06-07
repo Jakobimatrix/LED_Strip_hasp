@@ -18,12 +18,13 @@ enum class LEVEL : unsigned long {
 enum class TOPIC : unsigned long {
   NONE     = 0x00000000,
   MQTT     = 0x00000001,
-  BOOT     = 0x00000004,
-  DEBUG    = 0x00000008,
+  BOOT     = 0x00000002,
+  DEBUG    = 0x00000004,
+  TASK     = 0x00000008,
   WIFI     = 0x00000010,
-  LED      = 0x00000100,
-  SCHEDULE = 0x00000200,
-  PERF     = 0x00004000
+  LED      = 0x00000020,
+  SCHEDULE = 0x00000040,
+  PERF     = 0x00000080
 };
 
 // clang-format off
@@ -32,15 +33,16 @@ static constexpr typ::Map<LEVEL, const char*, NUM_LEVELS> LEVEL_LOOKUP{{
   {LEVEL::NONE,  "[?]"},
   {LEVEL::INFO,  "\033[0;37m[I]\033[0m"},     // white
   {LEVEL::WARN,  "\033[0;33m[W]\033[0m"},     // yellow
-  {LEVEL::ERROR, "\033[0;31m[E]\033[0m"}    // red
+  {LEVEL::ERROR, "\033[0;31m[E]\033[0m"}      // red
 }};
 
-static constexpr unsigned NUM_TOPICS = 8;
+static constexpr unsigned NUM_TOPICS = 9;
 static constexpr typ::Map<TOPIC, const char *, NUM_TOPICS> TOPIC_LOOKUP{{
   {TOPIC::NONE,      "[?]          "},
   {TOPIC::MQTT,      "[MQTT]       "},
   {TOPIC::BOOT,      "[BOOT]       "},
   {TOPIC::DEBUG,     "[DEBUG]      "},
+  {TOPIC::TASK,      "[TASK]       "},
   {TOPIC::WIFI,      "[WIFI]       "},
   {TOPIC::LED,       "[LED]        "},
   {TOPIC::SCHEDULE,  "[SCHEDULER]  "},

@@ -9,27 +9,33 @@ namespace typ {
 
 template <typename Key, typename Value, std::size_t Size>
 struct Map {
-  using Pair    = std::pair<Key, Value>;
-  using Data    = std::array<Pair, Size>;
-  using Type    = typename std::decay<Data>::type;
-  using Pointer = typename std::decay<Type>::pointer;
+  using Pair     = std::pair<Key, Value>;
+  using Data     = std::array<Pair, Size>;
+  using Iterator = typename Data::const_iterator;
   Data data;
 
-  constexpr Map(const Type data_)
+  constexpr Map(const Data& data_)
       : data(data_) {}
 
-  constexpr Pointer end() const { return data.end(); }
+  constexpr Map(std::initializer_list<Pair> init)
+      : data{} {
+    if (init.size() == Size) {
+      std::copy(init.begin(), init.end(), std::begin(data));
+    }
+  }
+
+  constexpr Iterator end() const { return std::cend(data); }
+  constexpr Iterator begin() const { return std::cbegin(data); }
 
   constexpr Value at(const Key& key) const {
-    return std::find_if(begin(data),
-                        end(data),
-                        [&key](const Pair& v) { return v.first == key; })
+    return std::find_if(
+             begin(), end(), [&key](const Pair& v) { return v.first == key; })
       ->second;
   }
 
-  constexpr Pointer find(const Key& key) const {
+  constexpr Iterator find(const Key& key) const {
     return std::find_if(
-      begin(data), end(data), [&key](const Pair& v) { return v.first == key; });
+      begin(), end(), [&key](const Pair& v) { return v.first == key; });
   }
 };
 

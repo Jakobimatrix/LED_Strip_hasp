@@ -1,14 +1,14 @@
-#include <Task/TaskDebugging.hpp>
+#include <Task/Debugging.hpp>
 #include <Globals.hpp>
 
 #include <Debugger/Serializer.hpp>
-#include <Debugger/Queues.hpp>
 
 namespace task {
 
 
 void debuggerTask(void* pvParameters) {
-  auto serializer = Serializer(debugQueue, debugWiFiQueue, debugMqttQueue, debugTaskQueue);
+  auto serializer = dbg::Serializer(
+    glob::debugTaskQueue, glob::debugWiFiQueue, glob::debugMqttQueue, glob::debugLedQueue);
 
   while (true) {
     vTaskDelay(pdMS_TO_TICKS(20));

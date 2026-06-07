@@ -8,18 +8,26 @@ namespace task {
 
 
 void ledBlinkTask(void* pvParameters) {
-
+  auto* self = static_cast<TaskBlinkOnboardLED*>(pvParameters);
 
   TickType_t lastWakeTime = xTaskGetTickCount();
 
   while (true) {
-    digitalWrite(LED_BUILTIN, ledState);
-    dbgLedLogger.log(
-      dbg::LEVEL::INFO, dbg::TOPIC::LED, "LED state: ", (ledState == LOW) ? "On" : "Off");
-    ledState = (ledState == LOW) ? HIGH : LOW;
+    digitalWrite(LED_BUILTIN, self->ledState);
+    glob::dbgLedLogger.log(
+      dbg::LEVEL::INFO, dbg::TOPIC::LED, "LED state: ", (self->ledState == LOW) ? "On" : "Off");
+
+    glob::dbgLedLogger.log(dbg::LEVEL::INFO,
+                           dbg::TOPIC::LED,
+                           "Stack size: ",
+                           self->getStackDepth(),
+                           " bytes, High Water Mark: ",
+                           self->getStackHighWaterMark(),
+                           " bytes");
+    self->ledState = (self->ledState == LOW) ? HIGH : LOW;
 
     // precise periodic delay
-    vTaskDelayUntil(&lastWakeTime, period);
+    vTaskDelayUntil(&lastWakeTime, self->period);
   }
 }
 
@@ -28,7 +36,7 @@ bool TaskBlinkOnboardLED::setup() {
   return pdFREERTOS_ERRNO_NONE == createTask(ledBlinkTask,
                                              "LED Blink Task",
                                              TaskBlinkOnboardLED::STACK_DEPTH,
-                                             NULL,
+                                             this,
                                              glob::LED_TASK_PRIORITY,
                                              Task::RealTimeCore);
 }
