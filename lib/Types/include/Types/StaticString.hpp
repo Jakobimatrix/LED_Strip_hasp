@@ -46,9 +46,7 @@ class StaticString {
    *
    * The metadata byte is initialized to indicate the full free capacity.
    */
-  constexpr StaticString() noexcept {
-    buffer_[N - 1] = static_cast<char>(N - 1);
-  }
+  constexpr StaticString() noexcept;
 
   /**
    * @brief Construct from a `std::string_view`.
@@ -59,14 +57,14 @@ class StaticString {
    * not fit, `assign` will return false (constructor does not propagate
    * failure).
    */
-  constexpr StaticString(std::string_view str) { assign(str); }
+  constexpr StaticString(std::string_view str);
 
   /**
    * @brief Construct from a null-terminated C-string.
    *
    * @param str Null-terminated source string.
    */
-  constexpr StaticString(const char* const str) { assign(str); }
+  constexpr StaticString(const char* const str);
 
   /**
    * @brief Assign content from a `std::string_view` into the buffer.
@@ -79,23 +77,7 @@ class StaticString {
    * @return `true` on success (all characters fit), `false` if the input
    *         length exceeds the available capacity.
    */
-  constexpr bool assign(std::string_view str) {
-    if (str.size() > (MAX_SIZE)) {
-      return false;
-    }
-    if (str.size() > 0) {
-      std::memcpy(buffer_, str.data(), str.size());
-    }
-    const std::size_t freeSpaceAfterInsert = MAX_SIZE - str.size();
-
-    if (freeSpaceAfterInsert > 0) {
-      auto begin = std::begin(buffer_);
-      std::advance(begin, static_cast<std::ptrdiff_t>(str.size()));
-      std::fill(begin, std::prev(std::end(buffer_)), '\0');
-    }
-    buffer_[SIZE_BIT] = static_cast<char>(freeSpaceAfterInsert);
-    return true;
-  }
+  constexpr bool assign(std::string_view str);
 
   /**
    * @brief Append a single character to the end of the stored content.
@@ -103,15 +85,7 @@ class StaticString {
    * @param c Character to append.
    * @return `true` if the character was appended, `false` if the buffer was full.
    */
-  constexpr bool push_back(char c) {
-    if (size() >= MAX_SIZE) {
-      return false;
-    }
-    buffer_[nextEmptyIndex()] = c;
-
-    --buffer_[SIZE_BIT];
-    return true;
-  }
+  constexpr bool push_back(char c);
 
   /**
    * @brief Compile-time indexed access to the underlying buffer (const).
@@ -120,10 +94,7 @@ class StaticString {
    * @return const reference to the character at index `i`.
    */
   template <std::size_t i>
-  constexpr const char& get() const noexcept {
-    static_assert(i < N, "Index out of bounds");
-    return buffer_[i];
-  }
+  constexpr const char& get() const noexcept;
 
   /**
    * @brief Compile-time indexed access to the underlying buffer (mutable).
@@ -133,19 +104,14 @@ class StaticString {
    * @return reference to the character at index `i`.
    */
   template <std::size_t i>
-  constexpr char& get() noexcept {
-    static_assert(i < N, "Index out of bounds");
-    return buffer_[i];
-  }
+  constexpr char& get() noexcept;
 
   /**
    * @brief Obtain a `std::string_view` referencing the stored characters.
    *
    * @return `std::string_view` covering the active content (length = `size()`).
    */
-  constexpr std::string_view view() const noexcept {
-    return std::string_view(buffer_, size());
-  }
+  constexpr std::string_view view() const noexcept;
 
   /**
    * @brief Get number of stored characters.
@@ -154,9 +120,7 @@ class StaticString {
    *
    * @return Number of characters currently stored (0..`MAX_SIZE`).
    */
-  constexpr std::size_t size() const noexcept {
-    return MAX_SIZE - static_cast<std::size_t>(buffer_[SIZE_BIT]);
-  }
+  constexpr std::size_t size() const noexcept;
 
 
   /**
@@ -164,14 +128,14 @@ class StaticString {
    *
    * @return Capacity in characters (equals `N-1`).
    */
-  constexpr std::size_t capacity() const noexcept { return MAX_SIZE; }
+  constexpr std::size_t capacity() const noexcept;
 
   /**
    * @brief Test whether the string is empty.
    *
    * @return `true` if no characters are stored, otherwise `false`.
    */
-  constexpr bool empty() const noexcept { return size() == 0; }
+  constexpr bool empty() const noexcept;
 
   /**
    * @brief Access the internal buffer as a C-string pointer.
@@ -180,7 +144,7 @@ class StaticString {
    *
    * @return Pointer to the internal character buffer.
    */
-  constexpr const char* c_str() const noexcept { return buffer_; }
+  constexpr const char* c_str() const noexcept;
 
  private:
   /**
@@ -188,14 +152,14 @@ class StaticString {
    *
    * @return Pointer to the internal buffer.
    */
-  constexpr char* data() noexcept { return buffer_; }
+  constexpr char* data() noexcept;
 
   /**
    * @brief Index of the first free slot for appending.
    *
    * @return Index in `buffer_` where the next character will be written.
    */
-  constexpr std::size_t nextEmptyIndex() const noexcept { return size(); }
+  constexpr std::size_t nextEmptyIndex() const noexcept;
 
   /**
    * @brief Index of the metadata byte inside `buffer_`.
@@ -215,3 +179,5 @@ class StaticString {
   char buffer_[N] = {0};
 };
 }  // namespace typ
+
+#include "StaticString.tpp"

@@ -18,26 +18,6 @@
 #include <atomic>
 #include <cstdint>
 
-/**
- * @file SpscQueue.hpp
- * @brief Lightweight single-producer single-consumer ring buffer queue.
- *
- * A wait-free SPSC queue implementation that uses a power-of-two capacity
- * and atomic indices for lockless producer/consumer access. This queue
- * sacrifices one slot to differentiate full vs empty states so the
- * effective usable capacity is `Capacity - 1`.
- *
- * @date 08.06.2026
- * @author Jakob Wandel
- * @version 1.0
- */
-
-#pragma once
-
-#include <array>
-#include <atomic>
-#include <cstdint>
-
 namespace typ {
 
 /**
@@ -76,20 +56,7 @@ class SpscQueue {
    * @return true  if the value was enqueued successfully.
    * @return false if the queue is full and the value could not be enqueued.
    */
-  [[nodiscard]] bool push(const T& value) noexcept {
-    const std::size_t head = head_.load(std::memory_order_relaxed);
-    const std::size_t next = increment(head);
-
-    if (next == tail_.load(std::memory_order_acquire)) {
-      return false;  // queue full
-    }
-
-    buffer_[head] = value;
-
-    head_.store(next, std::memory_order_release);
-
-    return true;
-  }
+  [[nodiscard]] bool push(const T& value) noexcept;
 
   /**
    * @brief Pop a value from the queue (consumer side).
@@ -100,19 +67,7 @@ class SpscQueue {
    * @return true  if a value was dequeued and written to `out`.
    * @return false if the queue was empty.
    */
-  [[nodiscard]] bool pop(T& out) noexcept {
-    const std::size_t tail = tail_.load(std::memory_order_relaxed);
-
-    if (tail == head_.load(std::memory_order_acquire)) {
-      return false;  // queue empty
-    }
-
-    out = buffer_[tail];
-
-    tail_.store(increment(tail), std::memory_order_release);
-
-    return true;
-  }
+  [[nodiscard]] bool pop(T& out) noexcept;
 
   /**
    * @brief Access the element at the front of the queue without removing it.
@@ -123,10 +78,7 @@ class SpscQueue {
    *
    * @return const T& Reference to the front element.
    */
-  [[nodiscard]] const T& peakFront() const noexcept {
-    const std::size_t tail = tail_.load(std::memory_order_acquire);
-    return buffer_[tail];
-  }
+  [[nodiscard]] const T& peakFront() const noexcept;
 
   /**
    * @brief Check whether the queue is empty.
@@ -134,9 +86,7 @@ class SpscQueue {
    * @return true  if the queue contains no elements.
    * @return false otherwise.
    */
-  [[nodiscard]] bool empty() const noexcept {
-    return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire);
-  }
+  [[nodiscard]] bool empty() const noexcept;
 
   /**
    * @brief Check whether the queue is full.
@@ -144,12 +94,7 @@ class SpscQueue {
    * @return true  if the queue cannot accept new elements.
    * @return false otherwise.
    */
-  [[nodiscard]] bool full() const noexcept {
-    const std::size_t head = head_.load(std::memory_order_acquire);
-    const std::size_t next = increment(head);
-
-    return next == tail_.load(std::memory_order_acquire);
-  }
+  [[nodiscard]] bool full() const noexcept;
 
   /**
    * @brief Current number of stored elements.
@@ -159,11 +104,7 @@ class SpscQueue {
    *
    * @return std::size_t Number of elements currently in the queue.
    */
-  [[nodiscard]] std::size_t size() const noexcept {
-    const std::size_t head = head_.load(std::memory_order_acquire);
-    const std::size_t tail = tail_.load(std::memory_order_acquire);
-    return (head >= tail) ? (head - tail) : (Capacity - tail + head);
-  }
+  [[nodiscard]] std::size_t size() const noexcept;
 
   /**
    * @brief Usable capacity of the queue.
@@ -184,10 +125,7 @@ class SpscQueue {
    * @param index Current index to increment.
    * @return std::size_t Next index (wrapped).
    */
-  [[nodiscard]] static constexpr std::size_t increment(const std::size_t index) noexcept {
-    // If capacity is a power of two then the following equals (index + 1) % Capacity but is much faster.
-    return (index + 1U) & (Capacity - 1U);
-  }
+  [[nodiscard]] static constexpr std::size_t increment(const std::size_t index) noexcept;
 
   /**
    * @brief Internal circular storage buffer.
@@ -206,3 +144,5 @@ class SpscQueue {
 };
 
 }  // namespace typ
+
+#include "SpscQueue.tpp"

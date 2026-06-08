@@ -14,6 +14,7 @@
 #pragma once
 
 #include <algorithm>
+#include <initializer_list>
 #include <array>
 #include <cstdint>
 #include <utility>
@@ -67,8 +68,7 @@ struct Map {
    *
    * @param data_ Array of `Size` pairs to initialize the map with.
    */
-  constexpr Map(const Data& data_)
-      : data(data_) {}
+  constexpr Map(const Data& data_);
 
   /**
    * @brief Construct from an initializer list.
@@ -79,12 +79,7 @@ struct Map {
    *
    * @param init Initializer list of `Pair` elements.
    */
-  constexpr Map(std::initializer_list<Pair> init)
-      : data{} {
-    if (init.size() == Size) {
-      std::copy(init.begin(), init.end(), std::begin(data));
-    }
-  }
+  constexpr Map(std::initializer_list<Pair> init);
 
   /**
    * @brief Return iterator to the end of the map.
@@ -113,11 +108,7 @@ struct Map {
    * @param key Key to search for.
    * @return Value The value mapped to `key`.
    */
-  constexpr Value at(const Key& key) const {
-    return std::find_if(
-             begin(), end(), [&key](const Pair& v) { return v.first == key; })
-      ->second;
-  }
+  constexpr Value at(const Key& key) const;
 
   /**
    * @brief Find the pair with matching `key`.
@@ -135,3 +126,5 @@ struct Map {
 };
 
 }  // namespace typ
+
+#include "CMap.tpp"
