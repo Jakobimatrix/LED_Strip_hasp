@@ -1,3 +1,16 @@
+/**
+ * @file Serializer.hpp
+ * @brief Runtime helpers and a multi-queue `Serializer` for debug messages.
+ *
+ * This header provides small utility functions used by the debug system
+ * (lookup helpers, a compact timestamp formatter and tuple visitation),
+ * and the `Serializer` template which aggregates one or more message
+ * queues and prints their oldest messages in-order.
+ *
+ * @date 08.06.2026
+ * @author Jakob Wandel
+ * @version 1.0
+ */
 #pragma once
 
 #include <Debugger/Constants.hpp>
@@ -14,71 +27,70 @@
 #include <type_traits>
 #include <utility>
 
+/**
+ * @namespace dbg
+ * @brief Debugging and logging utilities used across the project.
+ */
 namespace dbg {
 
-
+/**
+ * @brief Lookup a textual representation for an enum-like key in a map.
+ *
+ * Searches `map` for `key` and returns the mapped C-string if found.
+ * If the key is not present the function returns the literal "[?]".
+ *
+ * @tparam MapT Map type supporting `find()` and `end()` (e.g. std::map).
+ * @tparam Key Key type used for lookup.
+ * @param map Map to search in.
+ * @param key Key to locate in the map.
+ * @return Pointer to a NUL-terminated C-string describing `key` or "[?]".
+ */
 template <typename MapT, typename Key>
-constexpr const char* lookup(const MapT& map, const Key& key) {
-  const auto it = map.find(key);
-  return (it != map.end()) ? it->second : "[?]";
-}
+constexpr const char* lookup(const MapT& map, const Key& key);
 
-typ::StaticString<18> timestamp2string(int64_t timestamp) {
-  // `timestamp` is provided by `esp_timer_get_time()` and is in microseconds.
-  // Format as uptime: dddd/HH:mm:SS:ms (days since boot, 4 digits, capped at 9999)
-  int64_t us = timestamp;
-  if (us < 0)
-    us = 0;
-  int64_t ms   = (us / 1000) % 1000;  // milliseconds part
-  int64_t secs = us / 1000000;
 
-  int64_t s    = secs % 60;
-  int64_t mins = (secs / 60) % 60;
-  int64_t hrs  = (secs / 3600) % 24;
-  int64_t days = secs / 86400;
-  if (days > 9999)
-    days = 9999;
-
-  typ::StaticString<18> result;
-  result.get<0>()  = '0' + static_cast<char>((days / 1000) % 10);
-  result.get<1>()  = '0' + static_cast<char>((days / 100) % 10);
-  result.get<2>()  = '0' + static_cast<char>((days / 10) % 10);
-  result.get<3>()  = '0' + static_cast<char>(days % 10);
-  result.get<4>()  = '/';
-  result.get<5>()  = '0' + static_cast<char>((hrs / 10) % 10);
-  result.get<6>()  = '0' + static_cast<char>(hrs % 10);
-  result.get<7>()  = ':';
-  result.get<8>()  = '0' + static_cast<char>((mins / 10) % 10);
-  result.get<9>()  = '0' + static_cast<char>(mins % 10);
-  result.get<10>() = ':';
-  result.get<11>() = '0' + static_cast<char>((s / 10) % 10);
-  result.get<12>() = '0' + static_cast<char>(s % 10);
-  result.get<13>() = ':';
-  result.get<14>() = '0' + static_cast<char>((ms / 100) % 10);
-  result.get<15>() = '0' + static_cast<char>((ms / 10) % 10);
-  result.get<16>() = '0' + static_cast<char>(ms % 10);
-  result.get<17>() = '\0';
-
-  return result;
-}
+/**
+ * @brief Convert a microsecond timestamp into a compact uptime string.
+ *
+ * `timestamp` is expected to be a monotonic time value in microseconds
+ * (for example from `esp_timer_get_time()`). The function formats it as
+ * `dddd/HH:mm:SS:ms` where `dddd` are days (zero-padded, capped at 9999).
+ *
+ * @param timestamp Monotonic timestamp in microseconds.
+ * @return `typ::StaticString<18>` containing a NUL-terminated formatted
+ *         uptime string.
+ */
+typ::StaticString<18> timestamp2string(int64_t timestamp);
 
 
 template <typename Tuple, typename Func, std::size_t... Is>
-void tuple_runtime_visit_impl(Tuple&& tuple, size_t index, Func&& func, std::index_sequence<Is...>) {
-  ((index == Is ? (func(std::get<Is>(tuple)), true) : false) || ...);
-}
+void tuple_runtime_visit_impl(Tuple&& tuple, size_t index, Func&& func, std::index_sequence<Is...>);
 
+/**
+ * @brief Visit an element of a heterogenous `std::tuple` at runtime.
+ *
+ * This helper invokes `func(element)` where `element` is the tuple item
+ * at position `index`. The call is dispatched using an index sequence
+ * generated at compile-time while the selection occurs at runtime.
+ *
+ * @tparam Tuple A tuple-like type.
+ * @tparam Func Callable accepting the selected tuple element.
+ * @param tuple Tuple to index into.
+ * @param index Runtime index of the element to visit (0..N-1).
+ * @param func Callable invoked with the selected element.
+ */
 template <typename Tuple, typename Func>
-void tuple_runtime_visit(Tuple&& tuple, size_t index, Func&& func) {
-  constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Tuple>>;
+void tuple_runtime_visit(Tuple&& tuple, size_t index, Func&& func);
 
-  tuple_runtime_visit_impl(std::forward<Tuple>(tuple),
-                           index,
-                           std::forward<Func>(func),
-                           std::make_index_sequence<N>{});
-}
-
-
+/**
+ * @brief Multi-queue debug message serializer and printer.
+ *
+ * The `Serializer` class aggregates references to multiple message queues and
+ * provides a method to print the messages across all queues in order of
+ * their timestamps.
+ *
+ * @tparam Queues Variadic list of queue types (must support `empty()`, `peakFront()`, `pop()`, `size()` and `capacity()`).
+ */
 template <typename... Queues>
 class Serializer {
 
@@ -86,247 +98,65 @@ class Serializer {
 
   constexpr static std::size_t N = sizeof...(Queues);
 
+  /**
+   * @brief Print a single debug message to stdout using formatted fields.
+   *
+   * The function decodes the compact argument buffer contained in `msg` and
+   * prints a human readable line including level, topic and a formatted
+   * timestamp. Supported argument types are handled via a small switch on
+   * `ArgType` values.
+   *
+   * @tparam DebugMessageType Type of the message container (expects fields
+   *         `level`, `topic`, `timestamp` and `buffer`).
+   * @param msg Message instance to print.
+   */
   template <typename DebugMessageType>
-  void print(const DebugMessageType& msg) const {
-    const auto timestamp_str = timestamp2string(msg.timestamp);
-    std::printf("%s%s %s ",
-                lookup(LEVEL_LOOKUP, msg.level),
-                lookup(TOPIC_LOOKUP, msg.topic),
-                timestamp_str.c_str());
+  void print(const DebugMessageType& msg) const;
 
-    const uint8_t* ptr = msg.buffer.data.data();
-    std::size_t pos    = 0;
-
-    while (pos < msg.buffer.size) {
-      const auto type = static_cast<ArgType>(ptr[pos++]);
-
-      switch (type) {
-
-        case ArgType::Bool: {
-          bool v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%s", v ? "true" : "false");
-          break;
-        }
-
-        case ArgType::Char: {
-          char v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%c", v);
-          break;
-        }
-
-        case ArgType::SignedChar: {
-          signed char v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%hhd", v);
-          break;
-        }
-
-        case ArgType::UnsignedChar: {
-          unsigned char v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%hhu", v);
-          break;
-        }
-
-        case ArgType::Int16: {
-          short v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%hd", v);
-          break;
-        }
-
-        case ArgType::UInt16: {
-          unsigned short v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%hu", v);
-          break;
-        }
-
-        case ArgType::Int32: {
-          int32_t v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%" PRId32, v);
-          break;
-        }
-
-        case ArgType::UInt32: {
-          uint32_t v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%" PRIu32, v);
-          break;
-        }
-
-        case ArgType::Int64: {
-          int64_t v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%" PRId64, v);
-          break;
-        }
-
-        case ArgType::UInt64: {
-          uint64_t v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%" PRIu64, v);
-          break;
-        }
-
-        case ArgType::Float32: {
-          float v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%f", static_cast<double>(v));
-          break;
-        }
-
-        case ArgType::Float64: {
-          double v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%f", v);
-          break;
-        }
-
-        case ArgType::CString: {
-          uint16_t len;
-          std::memcpy(&len, ptr + pos, sizeof(len));
-          pos += sizeof(len);
-
-          std::printf(
-            "%.*s", static_cast<int>(len), reinterpret_cast<const char*>(ptr + pos));
-          pos += len;
-          break;
-        }
-
-        case ArgType::Level: {
-          LEVEL v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%s", lookup(LEVEL_LOOKUP, v));
-          break;
-        }
-
-        case ArgType::Topic: {
-          TOPIC v;
-          std::memcpy(&v, ptr + pos, sizeof(v));
-          pos += sizeof(v);
-
-          std::printf("%s", lookup(TOPIC_LOOKUP, v));
-          break;
-        }
-
-        default:
-          break;
-      }
-
-      if (pos < msg.buffer.size) {
-        std::printf(" ");
-      }
-    }
-    std::putchar('\n');
-  }
-
-  std::size_t getQueueWithOldestMessage() const {
-    int64_t earliest_timestamp = std::numeric_limits<int64_t>::max();
-    std::size_t earliest_index = std::numeric_limits<std::size_t>::max();
-
-    auto compare_timestamps = [&](const auto& queue, std::size_t index) {
-      if (!queue.empty()) {
-        const auto& front_msg = queue.peakFront();
-        if (front_msg.timestamp < earliest_timestamp) {
-          earliest_timestamp = front_msg.timestamp;
-          earliest_index     = index;
-        }
-      }
-    };
-
-    std::size_t index = 0;
-    std::apply(
-      [&](const auto&... queues) { (compare_timestamps(queues, index++), ...); }, queues_);
-    return earliest_index;
-  }
+  /**
+   * @brief Find which queue currently contains the oldest (earliest)
+   *        message timestamp.
+   *
+   * @return Index of the queue containing the oldest message, or
+   *         `std::numeric_limits<std::size_t>::max()` when none are present.
+   */
+  std::size_t getQueueWithOldestMessage() const;
 
  public:
-  explicit Serializer(Queues&... qs)
-      : queues_{qs...} {}
+  /**
+   * @brief Construct a `Serializer` aggregating references to message queues.
+   *
+   * The serializer stores references to the provided queues and will use them
+   * when selecting and printing the next available debug message.
+   *
+   * @param qs References to queue-like objects (must provide `empty()`,
+   *           `peakFront()`, `pop()`, `size()` and `capacity()`).
+   */
+  explicit Serializer(Queues&... qs);
 
-  void debugQueueLoads() const {
-    std::size_t index = 0;
-    auto debugQueue   = [&](const auto& q) {
-      const auto load = static_cast<float>(q.size()) / static_cast<float>(q.capacity());
-      if (load > 0.8f) {
-        std::printf("%s%s Queue %zu load is high: %.2f%%\n",
-                    lookup(LEVEL_LOOKUP, LEVEL::WARN),
-                    lookup(TOPIC_LOOKUP, TOPIC::DEBUG),
-                    index,
-                    load * 100.0f);
-      }
-      ++index;
-    };
 
-    std::apply([&](const auto&... q) { (debugQueue(q), ...); }, queues_);
-  }
+  void debugQueueLoads() const;
 
+  /**
+   * @brief Print a diagnostic warning if a message's internal buffer is
+   *        nearly full.
+   *
+   * @tparam DebugMessageType Type exposing `buffer.size` and
+   *         `buffer.capacity()`.
+   * @param msg Message to inspect.
+   */
   template <typename DebugMessageType>
-  void debugMessageBufferSizeUsage(const DebugMessageType& msg) const {
-    const auto used     = msg.buffer.size;
-    const auto capacity = msg.buffer.capacity();
-    const auto usage = static_cast<float>(used) / static_cast<float>(capacity);
-    if (usage > 0.95f) {
-      std::printf("%s%s Message buffer usage is high: %zu/%zu bytes (%.2f%%)\n",
-                  lookup(LEVEL_LOOKUP, LEVEL::WARN),
-                  lookup(TOPIC_LOOKUP, TOPIC::DEBUG),
-                  used,
-                  capacity,
-                  usage * 100.0f);
-    }
-  }
+  void debugMessageBufferSizeUsage(const DebugMessageType& msg) const;
 
-
-  [[nodiscard]] bool printNext() {
-    const size_t earliest_index = getQueueWithOldestMessage();
-    if (earliest_index == std::numeric_limits<std::size_t>::max()) {
-      return false;
-    }
-    tuple_runtime_visit(queues_, earliest_index, [this](auto& queue) {
-      using Queue = std::remove_reference_t<decltype(queue)>;
-      using Msg   = typename Queue::ValueType;
-
-      Msg msg{};
-      if (!queue.pop(msg)) {
-        return;
-      }
-      print(msg);
-      debugMessageBufferSizeUsage(msg);
-    });
-
-    debugQueueLoads();
-    return true;
-  }
+  /**
+   * @brief Pop and print the oldest available message across all queues.
+   *
+   * @return `true` if a message was printed; `false` if all queues were
+   *         empty.
+   */
+  [[nodiscard]] bool printNext();
 };
+
+#include "Serializer.tpp"
 
 }  // namespace dbg
