@@ -16,8 +16,13 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Types/StaticString.hpp>
 #include <Hardware.hpp>
+
+#include <Types/StaticString.hpp>
+#include <Debugger/Constants.hpp>
+
+
+#include <atomic>
 
 /** @namespace task Task subsystem: task wrappers and helpers used by the firmware. */
 namespace task {
@@ -34,6 +39,14 @@ namespace task {
  * priority. `start()` and `stop()` manage the task lifecycle at runtime.
  */
 class Task {
+  /**
+   * @brief Handle to the underlying RTOS task.
+   */
+  TaskHandle_t handle{nullptr};
+
+
+  TickType_t cycle_start_tick;
+
  protected:
   /**
    * @brief Default protected constructor.
@@ -42,11 +55,6 @@ class Task {
    * Use `start()` to create and run the task.
    */
   Task();
-
-  /**
-   * @brief Handle to the underlying RTOS task.
-   */
-  TaskHandle_t handle{nullptr};
 
   /**
    * @brief Human-readable task name.
@@ -63,13 +71,12 @@ class Task {
    */
   [[nodiscard]] virtual bool setup() = 0;
 
+
   /**
-   * @brief Task shutdown hook to implement by subclasses.
-   *
-   * Called when the task is stopping; implementations should release
-   * resources and ensure a clean termination.
+   * @brief Delete the underlying RTOS task handle.
+   * This should be called when the task is stopping to clean up the RTOS task.
    */
-  virtual void shutdown() = 0;
+  void deleteHandle();
 
   /**
    * @brief Configured stack depth used when creating the task.
@@ -77,6 +84,11 @@ class Task {
    * Set by subclasses or during creation. Value is in bytes.
    */
   uint32_t stackDepth{0};
+
+  std::atomic<bool> stopRequested{false};
+
+  void sleepFixedRate(TickType_t period);
+  void sleepFixedDelay(TickType_t delay);
 
   /**
    * @brief Thin wrapper that creates an RTOS task.
@@ -107,6 +119,13 @@ class Task {
   constexpr static BaseType_t NonRealTimeCore{0};
 #endif
 
+  /**
+   * @brief Task shutdown hook to implement by subclasses.
+   *
+   * This must be called from the task function with the while loop.
+   * The last line must be deleteHandle(handle);
+   */
+  virtual void shutdown() = 0;
 
   /**
    * @name Priority levels
@@ -153,9 +172,15 @@ class Task {
    * underlying RTOS task. Behavior is implementation defined for
    * subclasses but should return once the task is no longer running.
    *
-   * @return `true` if the task was stopped successfully; `false` on failure.
    */
-  [[nodiscard]] bool stop();
+  void stop();
+
+  /**
+   * @brief Check if the task has been requested to stop.
+   *
+   * @return `true` if the task is requested to stop; `false` otherwise.
+   */
+  [[nodiscard]] bool isStopRequested() const;
 
   /**
    * @brief Get the configured stack depth for this task.
@@ -193,6 +218,8 @@ class Task {
   [[nodiscard]] UBaseType_t getStackHighWaterMark() const {
     return uxTaskGetStackHighWaterMark(handle);
   }
+
+  void logStackHighWaterMark(dbg::TOPIC topic);
 };
 
 }  // namespace task

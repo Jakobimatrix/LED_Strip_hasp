@@ -12,22 +12,60 @@ void ledBlinkTask(void* pvParameters) {
 
   TickType_t lastWakeTime = xTaskGetTickCount();
 
-  while (true) {
+  while (!self->isStopRequested()) {
     digitalWrite(LED_BUILTIN, self->ledState);
-    glob::dbgLedLogger.log(
-      dbg::LEVEL::INFO, dbg::TOPIC::LED, "LED state: ", (self->ledState == LOW) ? "On" : "Off");
-
-    glob::dbgLedLogger.log(dbg::LEVEL::INFO,
-                           dbg::TOPIC::LED,
-                           "Stack size: ",
-                           self->getStackDepth(),
-                           " bytes, High Water Mark: ",
-                           self->getStackHighWaterMark(),
-                           " bytes");
     self->ledState = (self->ledState == LOW) ? HIGH : LOW;
 
-    // precise periodic delay
-    vTaskDelayUntil(&lastWakeTime, self->period);
+    self->handleWiFiTask();
+
+    self->logStackHighWaterMark(dbg::TOPIC::LED);
+    vTaskDelayUntil(&lastWakeTime, self->getPeriodSleep());
+  }
+
+  self->shutdown();
+}
+
+void TaskBlinkOnboardLED::handleWiFiTask() {
+  if (!taskWiFi.isRunning()) {
+    const bool success{taskWiFi.start()};
+    if (!success) {
+      glob::dbgLedLogger.log(
+        dbg::LEVEL::INFO, dbg::TOPIC::LED, "Failed to start WiFi Task!");
+    }
+    return;
+  }
+  const WIFI_STATUS current_wifi_status{taskWiFi.getWifiStatus()};
+  switch (current_wifi_status) {
+    case WIFI_STATUS::CONNECTED:
+      current_led_pattern = LED_PATTERN::HEART_BEAT;
+      return;
+    case WIFI_STATUS::CONNECTING:
+      current_led_pattern = LED_PATTERN::WIFI_CONNECTION;
+      return;
+    case WIFI_STATUS::NO_WIFI:
+      current_led_pattern = LED_PATTERN::NO_WIFI_ERROR;
+      return;
+    case WIFI_STATUS::NEED_PROVISIONING:
+      current_led_pattern = LED_PATTERN::NEED_PROVISIONING;
+      return;
+    case WIFI_STATUS::IDLE:
+      current_led_pattern = LED_PATTERN::IDLE;
+      return;
+  }
+}
+
+TickType_t TaskBlinkOnboardLED::getPeriodSleep() {
+  ++current_period_index;
+  if (current_period_index > NUM_PERIODS) {
+    current_period_index = 0;
+  }
+  switch (current_led_pattern) {
+    case LED_PATTERN::HEART_BEAT:
+      return HEART_BEAT_PATTERN[current_period_index];
+    case LED_PATTERN::NEED_PROVISIONING:
+      return NEED_PROVISIONING_PATTERN[current_period_index];
+    default:
+      return HEART_BEAT_PATTERN[current_period_index];
   }
 }
 
@@ -41,6 +79,9 @@ bool TaskBlinkOnboardLED::setup() {
                                              Task::RealTimeCore);
 }
 
-void TaskBlinkOnboardLED::shutdown() { pinMode(ledPin, INPUT); }
+void TaskBlinkOnboardLED::shutdown() {
+  pinMode(ledPin, INPUT);
+  deleteHandle();
+}
 
 }  // namespace task

@@ -7,15 +7,19 @@ namespace task {
 
 
 void debuggerTask(void* pvParameters) {
+  auto* self = static_cast<TaskDebugging*>(pvParameters);
+
   auto serializer = dbg::Serializer(
     glob::debugTaskQueue, glob::debugWiFiQueue, glob::debugMqttQueue, glob::debugLedQueue);
 
-  while (true) {
+  while (!self->isStopRequested()) {
     vTaskDelay(pdMS_TO_TICKS(20));
     while (serializer.printNext()) {
       vTaskDelay(pdMS_TO_TICKS(5));
     }
   }
+
+  self->shutdown();
 }
 
 bool TaskDebugging::setup() {
@@ -28,6 +32,9 @@ bool TaskDebugging::setup() {
                                              Task::NonRealTimeCore);
 }
 
-void TaskDebugging::shutdown() { Serial.end(); }
+void TaskDebugging::shutdown() {
+  Serial.end();
+  deleteHandle();
+}
 
 }  // namespace task

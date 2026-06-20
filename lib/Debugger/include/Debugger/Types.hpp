@@ -60,6 +60,10 @@ enum class ArgType : uint8_t {
   Topic
 };
 
+/**
+ * @brief `ArgTraits` template specialization for supported argument types.
+ * @tparam T The type for which to provide traits.
+ */
 template <typename T>
 struct ArgTraits {
   static constexpr bool supported = false;

@@ -48,10 +48,9 @@ void debuggerTask(void* pvParameters);
  */
 class TaskDebugging : public Task {
 
-  /**
-   * @brief Stack depth to allocate for the debugger task.
-   */
   constexpr static uint32_t STACK_DEPTH{2048};
+
+  constexpr static TickType_t MAX_EXPECTED_LOOP_TIME_MS{1000};
 
   /**
    * @brief Perform task-specific initialization.
@@ -61,8 +60,9 @@ class TaskDebugging : public Task {
    */
   [[nodiscard]] bool setup() override;
 
+ public:
   /**
-   * @brief Cleanly shut down the debugger task and release resources.
+   * @brief Release resources and perform clean shutdown for the task.
    */
   void shutdown() override;
 };

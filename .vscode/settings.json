@@ -1,0 +1,8 @@
+{
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/.pio/compile_commands.json",
+  "C_Cpp.default.intelliSenseMode": "gcc-x64",
+  "cmake.configureOnOpen": false,
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}/.pio"
+  ]
+}

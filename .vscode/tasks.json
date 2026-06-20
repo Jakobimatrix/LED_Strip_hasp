@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PlatformIO: Build + compiledb",
+      "type": "shell",
+      "command": "echo 'Platform-specific PlatformIO build will run'",
+      "windows": {
+        "command": "$ans = Read-Host 'Do you want to upload after build? [Y/N]'; if ($ans -match '^[Yy]') { & '${env:USERPROFILE}\\.platformio\\penv\\Scripts\\platformio.exe' run --environment ${input:pioEnv} -t compiledb -t upload } else { & '${env:USERPROFILE}\\.platformio\\penv\\Scripts\\platformio.exe' run -t compiledb --environment ${input:pioEnv}; Write-Host 'Upload skipped' }",
+        "options": {
+          "shell": {
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-Command"
+            ]
+          }
+        }
+      },
+      "linux": {
+        "command": "read -p 'Do you want to upload after build? [Y/N] ' ans; if [[ $ans =~ ^[Yy] ]]; then \"$HOME/.platformio/penv/bin/platformio\" run --environment ${input:pioEnv} -t compiledb -t upload; else \"$HOME/.platformio/penv/bin/platformio\" run -t compiledb --environment ${input:pioEnv}; echo 'Upload skipped'; fi",
+        "options": {
+          "shell": {
+            "executable": "/bin/bash",
+            "args": [
+              "-lc"
+            ]
+          }
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "pioEnv",
+      "type": "pickString",
+      "description": "Select PlatformIO environment",
+      "options": [
+        "debug",
+        "release"
+      ],
+      "default": "debug"
+    }
+  ]
+}

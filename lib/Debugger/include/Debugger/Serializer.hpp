@@ -63,9 +63,6 @@ constexpr const char* lookup(const MapT& map, const Key& key);
 typ::StaticString<18> timestamp2string(int64_t timestamp);
 
 
-template <typename Tuple, typename Func, std::size_t... Is>
-void tuple_runtime_visit_impl(Tuple&& tuple, size_t index, Func&& func, std::index_sequence<Is...>);
-
 /**
  * @brief Visit an element of a heterogenous `std::tuple` at runtime.
  *
@@ -134,7 +131,12 @@ class Serializer {
    */
   explicit Serializer(Queues&... qs);
 
-
+  /**
+   * @brief Print a diagnostic warning if any queue's load is above 80%.
+   *
+   * The function computes the load of each queue as `size() / capacity()` and
+   * prints a warning message for any queue exceeding the 80% threshold.
+   */
   void debugQueueLoads() const;
 
   /**

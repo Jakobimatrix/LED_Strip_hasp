@@ -14,12 +14,13 @@
  */
 #pragma once
 
-#include <Arduino.h>
+#include <array>
+
 #include <Hardware.hpp>
 
 #include <Task/Task.hpp>
+#include <Task/WIFI.hpp>
 
-/** @namespace task Task subsystem: task wrappers and helpers used by the firmware. */
 namespace task {
 /**
  * @brief FreeRTOS task entry function used by `TaskBlinkOnboardLED`.
@@ -34,6 +35,10 @@ class TaskBlinkOnboardLED : public Task {
   /** @brief Stack depth (bytes) allocated for the blink task. */
   constexpr static uint32_t STACK_DEPTH{2048};
 
+  task::TaskWIFI taskWiFi;
+
+  void handleWiFiTask();
+
   /**
    * @brief Perform one-time initialization for the blink task.
    *
@@ -44,20 +49,72 @@ class TaskBlinkOnboardLED : public Task {
    */
   [[nodiscard]] bool setup() override;
 
-  /**
-   * @brief Release resources and perform clean shutdown for the task.
-   *
-   */
-  void shutdown() override;
-
   /** @brief Current LED output state (0 = on, non-zero = off). */
   uint8_t ledState{1};
 
   /** @brief GPIO pin number used for the onboard LED. */
   int ledPin{ON_BOARD_LED_PIN};
 
-  /** @brief Period between LED toggles expressed as RTOS ticks. */
-  static constexpr TickType_t period = pdMS_TO_TICKS(1000);
+  constexpr static size_t NUM_PERIODS{6};
+  size_t current_period_index{NUM_PERIODS};
+  TickType_t getPeriodSleep();
+
+  enum class LED_PATTERN {
+    HEART_BEAT,
+    NEED_PROVISIONING,
+    WIFI_CONNECTION,
+    NO_WIFI_ERROR,
+    IDLE,
+  };
+
+  LED_PATTERN current_led_pattern{LED_PATTERN::HEART_BEAT};
+
+  static constexpr std::array<TickType_t, NUM_PERIODS> HEART_BEAT_PATTERN{
+    pdMS_TO_TICKS(500),
+    pdMS_TO_TICKS(500),
+    pdMS_TO_TICKS(500),
+    pdMS_TO_TICKS(500),
+    pdMS_TO_TICKS(500),
+    pdMS_TO_TICKS(500)};
+
+  static constexpr std::array<TickType_t, NUM_PERIODS> NEED_PROVISIONING_PATTERN{
+    pdMS_TO_TICKS(10000),
+    pdMS_TO_TICKS(0),
+    pdMS_TO_TICKS(10000),
+    pdMS_TO_TICKS(0),
+    pdMS_TO_TICKS(10000),
+    pdMS_TO_TICKS(0)};
+
+  static constexpr std::array<TickType_t, NUM_PERIODS> WIFI_CONNECTION_PATTERN{
+    pdMS_TO_TICKS(200),
+    pdMS_TO_TICKS(200),
+    pdMS_TO_TICKS(200),
+    pdMS_TO_TICKS(200),
+    pdMS_TO_TICKS(200),
+    pdMS_TO_TICKS(200)};
+
+  static constexpr std::array<TickType_t, NUM_PERIODS> NO_WIFI_ERROR_PATTERN{
+    pdMS_TO_TICKS(1000),
+    pdMS_TO_TICKS(100),
+    pdMS_TO_TICKS(1000),
+    pdMS_TO_TICKS(100),
+    pdMS_TO_TICKS(1000),
+    pdMS_TO_TICKS(100)};
+
+  static constexpr std::array<TickType_t, NUM_PERIODS> IDLE_PATTERN{
+    pdMS_TO_TICKS(100),
+    pdMS_TO_TICKS(2000),
+    pdMS_TO_TICKS(100),
+    pdMS_TO_TICKS(2000),
+    pdMS_TO_TICKS(100),
+    pdMS_TO_TICKS(2000)};
+
+
+ public:
+  /**
+   * @brief Release resources and perform clean shutdown for the task.
+   */
+  void shutdown() override;
 };
 
 }  // namespace task
