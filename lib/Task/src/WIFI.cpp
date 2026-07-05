@@ -1,46 +1,19 @@
 #include <Task/WIFI.hpp>
 #include <Globals.hpp>
+#include <Task/TaskPriority.hpp>
+
 
 #include <WiFi.h>
-
 #include <Arduino.h>
-
-#include <Types/StaticString.hpp>
-
-#include "wifi_provisioning/manager.h"
-#include "wifi_provisioning/scheme_ble.h"
-
-
-typ::StaticString<16> toString(const wl_status_t status) {
-  switch (status) {
-    case WL_IDLE_STATUS:
-      return "IDLE";
-    case WL_NO_SSID_AVAIL:
-      return "NO_SSID_AVAIL";
-    case WL_SCAN_COMPLETED:
-      return "SCAN_COMPLETED";
-    case WL_CONNECTED:
-      return "CONNECTED";
-    case WL_CONNECT_FAILED:
-      return "CONNECT_FAILED";
-    case WL_CONNECTION_LOST:
-      return "CONNECTION_LOST";
-    case WL_DISCONNECTED:
-      return "DISCONNECTED";
-    case WL_NO_SHIELD:
-      return "NO_SHIELD";
-    case WL_STOPPED:
-      return "STOPPED";
-    default:
-      return "UNKNOWN_STATUS";
-  }
-}
 
 
 namespace task {
 
+
 void wifiTask(void* pvParameters) {
   auto* self = static_cast<TaskWIFI*>(pvParameters);
+
+  self->startWiFi();
 
   while (!self->isStopRequested()) {
     const auto [old_status, new_status] = self->checkWiFiStatusChange();
@@ -96,18 +69,31 @@ void wifiTask(void* pvParameters) {
       }
     }
 
-    self->logStackHighWaterMark(dbg::TOPIC::WIFI);
+    // self->logStackHighWaterMark(dbg::TOPIC::WIFI);
     self->sleepFixedDelay(pdMS_TO_TICKS(1000));
   }
   self->shutdown();
 }
 
-void TaskWIFI::startWiFi() {
-  if (!isProvisioned()) {
-    doWifiProvisioning();
+bool TaskWIFI::needsProvisioning() const {
+  glob::Credentials creds;
+  creds.load();
+  return !creds.hasCredentials();
+}
+
+bool TaskWIFI::startProvisioningTask() {
+  if (!provisioning_task.isRunning()) {
+    // this task will run WiFi.begin after provisioning is done and then terminate itself
+    return provisioning_task.start();
   }
-  WiFi.begin();
-  WiFi.setAutoReconnect(true);
+  return false;
+}
+
+void TaskWIFI::startWiFi() {
+  if (startProvisioningTask()) {
+    glob::dbgWiFiLogger.log(
+      dbg::LEVEL::ERROR, dbg::TOPIC::WIFI, "Starting provisioning softAP.");
+  }
 }
 
 void TaskWIFI::stopWiFi() {
@@ -120,8 +106,9 @@ void TaskWIFI::resetWiFi() {
   const bool turnWiFiRadioOff{true};
   const bool eraseCredentials{true};
   WiFi.disconnectAsync(turnWiFiRadioOff, eraseCredentials);
-  wifi_prov_mgr_reset_provisioning();
-  wifi_prov_mgr_reset_sm_state_on_failure();
+  glob::Credentials creds;
+  creds.clear();
+  startProvisioningTask();
 }
 
 void TaskWIFI::dealWithWiFiStopped(wl_status_t prev_status) {
@@ -158,10 +145,20 @@ void TaskWIFI::dealWithWiFiDisconnected(wl_status_t prev_status) {
 
 void TaskWIFI::dealWithWiFiConnected([[maybe_unused]] wl_status_t prev_status) {
   if (!wifi_on) {
-    const bool turnWiFiRadioOff{true};
-    const bool eraseCredentials{false};
-    WiFi.disconnectAsync(turnWiFiRadioOff, eraseCredentials);
+    glob::dbgWiFiLogger.log(dbg::LEVEL::INFO,
+                            dbg::TOPIC::WIFI,
+                            "WIFI is connected but WiFi was requested to be "
+                            "turned off. Disconnecting...");
+    stopWiFi();
     sleepFixedDelay(pdMS_TO_TICKS(2000));
+    return;
+  }
+  if (provisioning_task.isRunning()) {
+    glob::dbgWiFiLogger.log(dbg::LEVEL::INFO,
+                            dbg::TOPIC::WIFI,
+                            "Provisioning task still running. Stopping it now "
+                            "since WiFi is connected.");
+    provisioning_task.stop();
   }
 }
 
@@ -243,11 +240,23 @@ void TaskWIFI::dealWithWiFiConnectFailed(wl_status_t prev_status) {
 
 void TaskWIFI::dealWithWiFiConnectionLost(wl_status_t prev_status) {
   if (prev_status == WL_CONNECTION_LOST) {
-    return;
+    const TickType_t now = xTaskGetTickCount();
+    if (now - wifi_disconnected_since < DISCONNECTION_TIMEOUT_TICKS) {
+      return;
+    }
+    if (startProvisioningTask()) {
+      glob::dbgWiFiLogger.log(
+        dbg::LEVEL::WARN,
+        dbg::TOPIC::WIFI,
+        "WiFi connection lost. Restarting Provisioning in case User wants to "
+        "change to different SSID.");
+    }
   }
   glob::dbgWiFiLogger.log(dbg::LEVEL::WARN,
                           dbg::TOPIC::WIFI,
                           "WiFi connection lost. Attempting to reconnect.");
+
+  wifi_disconnected_since = xTaskGetTickCount();
 }
 
 void TaskWIFI::dealWithWiFiUnknown(wl_status_t prev_status) {
@@ -282,10 +291,10 @@ WIFI_STATUS TaskWIFI::getWifiStatus() const {
     case WL_CONNECT_FAILED:
     case WL_CONNECTION_LOST:
     case WL_DISCONNECTED: {
-      if (isProvisioned()) {
-        return WIFI_STATUS::CONNECTING;
+      if (needsProvisioning()) {
+        return WIFI_STATUS::NEED_PROVISIONING;
       }
-      return WIFI_STATUS::NEED_PROVISIONING;
+      return WIFI_STATUS::CONNECTING;
     }
     case WL_CONNECTED:
       return WIFI_STATUS::CONNECTED;
@@ -296,50 +305,14 @@ WIFI_STATUS TaskWIFI::getWifiStatus() const {
   }
 }
 
-bool TaskWIFI::isProvisioned() const {
-  bool provisioned = false;
-  wifi_prov_mgr_is_provisioned(&provisioned);
-  return provisioned;
-}
-
-void TaskWIFI::doWifiProvisioning() {
-  glob::dbgWiFiLogger.log(
-    dbg::LEVEL::INFO, dbg::TOPIC::WIFI, "Starting WiFi provisioning...");
-
-  const bool provisioned = isProvisioned();
-  if (!provisioned) {
-    wifi_prov_security_t security = WIFI_PROV_SECURITY_1;
-
-    wifi_prov_mgr_start_provisioning(security, proveOfPossession, deviceName, nullptr);
-
-    glob::dbgWiFiLogger.log(dbg::LEVEL::INFO,
-                            dbg::TOPIC::WIFI,
-                            "Open ESP SoftAP Prov app.\nDevice name: ",
-                            deviceName,
-                            "\nPOP: ",
-                            proveOfPossession);
-  } else {
-    glob::dbgWiFiLogger.log(dbg::LEVEL::ERROR,
-                            dbg::TOPIC::WIFI,
-                            "Already provisioned. But inner state is "
-                            "DISCONNECTED. This should not happen.");
-    wifi_prov_mgr_deinit();
-  }
-}
 
 bool TaskWIFI::setup() {
-  wifi_prov_mgr_config_t config = {
-    .scheme               = wifi_prov_scheme_ble,
-    .scheme_event_handler = WIFI_PROV_SCHEME_BLE_EVENT_HANDLER_FREE_BTDM};
-
-  wifi_prov_mgr_init(config);
-
-  return pdFREERTOS_ERRNO_NONE == createTask(wifiTask,
-                                             "WIFI Task",
-                                             TaskWIFI::STACK_DEPTH,
-                                             this,
-                                             glob::WIFI_TASK_PRIORITY,
-                                             Task::NonRealTimeCore);
+  return pdPASS == createTask(wifiTask,
+                              "WIFI Task",
+                              TaskWIFI::STACK_DEPTH,
+                              this,
+                              task::WIFI_TASK_PRIORITY,
+                              Task::NonRealTimeCore);
 }
 
 void TaskWIFI::setWifiOn(bool on) {
@@ -348,9 +321,7 @@ void TaskWIFI::setWifiOn(bool on) {
   }
   wifi_on = on;
   if (!on) {
-    const bool turnWiFiRadioOff{true};
-    const bool eraseCredentials{false};
-    WiFi.disconnect(turnWiFiRadioOff, eraseCredentials);
+    stopWiFi();
     WiFi.mode(wifi_mode_t::WIFI_MODE_NULL);
   } else {
     WiFi.mode(wifi_mode_t::WIFI_MODE_STA);

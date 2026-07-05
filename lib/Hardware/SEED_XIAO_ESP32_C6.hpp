@@ -20,4 +20,5 @@
 #include <cstddef>
 
 #define BOARD_NUM_CORES  1
-#define ON_BOARD_LED_PIN 5
+#define ON_BOARD_LED_PIN 15
+#define RESET_PIN        0

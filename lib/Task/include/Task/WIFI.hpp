@@ -17,8 +17,10 @@
 
 #include <Types/StaticString.hpp>
 #include <Task/Task.hpp>
+#include <Task/WiFiProvisioning.hpp>
+#include <Credentials.hpp>
 
-typ::StaticString<16> toString(const wl_status_t status);
+
 
 enum class WIFI_STATUS : std::uint8_t {
   NEED_PROVISIONING,
@@ -57,6 +59,8 @@ class TaskWIFI : public Task {
   unsigned short wifi_reconnect_attempts{0};
   constexpr static unsigned short MAX_WIFI_RECONNECT_ATTEMPTS = 5;
 
+  TaskWiFiProvisioning provisioning_task;
+
  private:
   /**
    * @brief Perform one-time initialization for the WIFI task.
@@ -72,6 +76,20 @@ class TaskWIFI : public Task {
 
   void dealWithWiFiStopped(wl_status_t prev_status);
 
+  /**
+   * @brief Handle the case where the WiFi connection got disconnected.
+   *
+   * Disconnect means DESCONNECT WAS TRIGGERED (gracefully):
+   *  - AP vanished
+   *  - AP rebooted
+   *  - reconnect is in progress
+   *  - disconnect was requested
+   *
+   * This function is called when the WiFi status is `WL_DISCONNECTED`.
+   * It logs the event and may trigger reconnection attempts after a timeout if the disconnection persists.
+   *
+   * @param prev_status The previous WiFi status last time it was checked.
+   */
   void dealWithWiFiDisconnected(wl_status_t prev_status);
 
   void dealWithWiFiConnected(wl_status_t prev_status);
@@ -86,6 +104,20 @@ class TaskWIFI : public Task {
 
   void dealWithWiFiConnectFailed(wl_status_t prev_status);
 
+  /**
+   * @brief Handle the case where the WiFi connection is lost.
+   *
+   * Connection Lost means SIGNAL_LOSS:
+   *  - The ESP was connected.
+   *  - The AP disappeared or the signal became unusable.
+   *  - Credentials are still valid.
+   *
+   * This function is called when the WiFi status is `WL_CONNECTION_LOST`.
+   * It logs the event and may trigger reconnection attempts or other recovery
+   * actions as needed.
+   *
+   * @param prev_status The previous WiFi status last time it was checked.
+   */
   void dealWithWiFiConnectionLost(wl_status_t prev_status);
 
   void dealWithWiFiUnknown(wl_status_t prev_status);
@@ -94,15 +126,15 @@ class TaskWIFI : public Task {
 
   void stopWiFi();
 
-  void resetWiFi();
-
   void logWiFiStatusChange(const wl_status_t old_status, const wl_status_t new_status) const;
 
   std::pair<wl_status_t, wl_status_t> checkWiFiStatusChange();
 
-  bool isProvisioned() const;
+  bool startProvisioningTask();
 
  public:
+  void resetWiFi();
+
   /**
    * @brief Returns the state of the Wifi:
    * @return
@@ -123,6 +155,13 @@ class TaskWIFI : public Task {
    * @brief Release resources and perform clean shutdown for the task.
    */
   void shutdown() override;
+
+  /**
+   * @brief Check if the device needs provisioning. (if ssid and password are stored)
+   *
+   * @return `true` if provisioning is needed; `false` otherwise.
+   */
+  bool needsProvisioning() const;
 };
 
 }  // namespace task

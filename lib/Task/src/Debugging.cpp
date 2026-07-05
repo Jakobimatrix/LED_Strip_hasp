@@ -1,5 +1,6 @@
 #include <Task/Debugging.hpp>
 #include <Globals.hpp>
+#include <Task/TaskPriority.hpp>
 
 #include <Debugger/Serializer.hpp>
 
@@ -24,12 +25,12 @@ void debuggerTask(void* pvParameters) {
 
 bool TaskDebugging::setup() {
   Serial.begin(9600);
-  return pdFREERTOS_ERRNO_NONE == createTask(debuggerTask,
-                                             "Debugger Task",
-                                             TaskDebugging::STACK_DEPTH,
-                                             NULL,
-                                             glob::DEBUG_TASK_PRIORITY,
-                                             Task::NonRealTimeCore);
+  return pdPASS == createTask(debuggerTask,
+                              "Debugger Task",
+                              TaskDebugging::STACK_DEPTH,
+                              this,
+                              task::DEBUG_TASK_PRIORITY,
+                              Task::NonRealTimeCore);
 }
 
 void TaskDebugging::shutdown() {

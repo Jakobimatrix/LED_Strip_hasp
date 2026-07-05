@@ -20,7 +20,8 @@ bool Task::isRunning() const {
   if (handle == nullptr) {
     return false;
   }
-  return eTaskGetState(handle) == eRunning;
+  const eTaskState state = eTaskGetState(handle);
+  return state == eRunning || state == eReady || state == eBlocked || state == eSuspended;
 }
 
 bool Task::start() {
@@ -80,7 +81,7 @@ BaseType_t Task::createTask(TaskFunction_t pxTaskCode,
   const BaseType_t ret = xTaskCreatePinnedToCore(
     pxTaskCode, pcName, ulStackDepth, pvParameters, uxPriority, &handle, xCoreID);
 
-  if (ret != pdFREERTOS_ERRNO_NONE) {
+  if (ret != pdPASS) {
     glob::dbgTaskLogger.log(dbg::LEVEL::ERROR,
                             dbg::TOPIC::TASK,
                             "Failed to create task ",

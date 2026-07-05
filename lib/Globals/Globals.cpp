@@ -2,6 +2,8 @@
 
 namespace glob {
 
+Preferences prefs;
+
 DebugQueue<16, 128> debugMqttQueue{};
 DebugQueue<16, 128> debugWiFiQueue{};
 DebugQueue<32, 128> debugLedQueue{};

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include <Globals.hpp>
+#include <Task/TaskPriority.hpp>
 
 namespace task {
 
@@ -13,12 +14,21 @@ void ledBlinkTask(void* pvParameters) {
   TickType_t lastWakeTime = xTaskGetTickCount();
 
   while (!self->isStopRequested()) {
-    digitalWrite(LED_BUILTIN, self->ledState);
+    digitalWrite(self->ledPin, self->ledState);
     self->ledState = (self->ledState == LOW) ? HIGH : LOW;
 
     self->handleWiFiTask();
 
-    self->logStackHighWaterMark(dbg::TOPIC::LED);
+    //  self->logStackHighWaterMark(dbg::TOPIC::LED);
+
+    if (digitalRead(RESET_PIN) == LOW) {
+      delay(50);  // debounce
+      if (digitalRead(RESET_PIN) == LOW) {
+        self->taskWiFi.resetWiFi();
+        Serial.println("Reset detected. Cleared credentials.");
+      }
+    }
+
     vTaskDelayUntil(&lastWakeTime, self->getPeriodSleep());
   }
 
@@ -56,7 +66,7 @@ void TaskBlinkOnboardLED::handleWiFiTask() {
 
 TickType_t TaskBlinkOnboardLED::getPeriodSleep() {
   ++current_period_index;
-  if (current_period_index > NUM_PERIODS) {
+  if (current_period_index >= NUM_PERIODS) {
     current_period_index = 0;
   }
   switch (current_led_pattern) {
@@ -71,12 +81,13 @@ TickType_t TaskBlinkOnboardLED::getPeriodSleep() {
 
 bool TaskBlinkOnboardLED::setup() {
   pinMode(ledPin, OUTPUT);
-  return pdFREERTOS_ERRNO_NONE == createTask(ledBlinkTask,
-                                             "LED Blink Task",
-                                             TaskBlinkOnboardLED::STACK_DEPTH,
-                                             this,
-                                             glob::LED_TASK_PRIORITY,
-                                             Task::RealTimeCore);
+  pinMode(RESET_PIN, INPUT_PULLUP);
+  return pdPASS == createTask(ledBlinkTask,
+                              "LED Blink Task",
+                              TaskBlinkOnboardLED::STACK_DEPTH,
+                              this,
+                              task::LED_TASK_PRIORITY,
+                              Task::RealTimeCore);
 }
 
 void TaskBlinkOnboardLED::shutdown() {

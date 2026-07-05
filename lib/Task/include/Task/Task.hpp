@@ -128,17 +128,6 @@ class Task {
   virtual void shutdown() = 0;
 
   /**
-   * @name Priority levels
-   * Predefined task priorities for convenience.
-   * @{
-   */
-  constexpr static UBaseType_t LowPriority{1};
-  constexpr static UBaseType_t MediumPriority{2};
-  constexpr static UBaseType_t HighPriority{3};
-  constexpr static UBaseType_t RealTimePriority{4};
-  /** @} */
-
-  /**
    * @brief Virtual destructor.
    *
    * Ensures derived classes are cleaned up properly. Does not stop

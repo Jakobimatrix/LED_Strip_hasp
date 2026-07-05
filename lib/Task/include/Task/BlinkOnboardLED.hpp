@@ -35,7 +35,7 @@ class TaskBlinkOnboardLED : public Task {
   /** @brief Stack depth (bytes) allocated for the blink task. */
   constexpr static uint32_t STACK_DEPTH{2048};
 
-  task::TaskWIFI taskWiFi;
+  TaskWIFI taskWiFi;
 
   void handleWiFiTask();
 
@@ -79,11 +79,11 @@ class TaskBlinkOnboardLED : public Task {
 
   static constexpr std::array<TickType_t, NUM_PERIODS> NEED_PROVISIONING_PATTERN{
     pdMS_TO_TICKS(10000),
-    pdMS_TO_TICKS(0),
+    pdMS_TO_TICKS(1),
     pdMS_TO_TICKS(10000),
-    pdMS_TO_TICKS(0),
+    pdMS_TO_TICKS(1),
     pdMS_TO_TICKS(10000),
-    pdMS_TO_TICKS(0)};
+    pdMS_TO_TICKS(1)};
 
   static constexpr std::array<TickType_t, NUM_PERIODS> WIFI_CONNECTION_PATTERN{
     pdMS_TO_TICKS(200),

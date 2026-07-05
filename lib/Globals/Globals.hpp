@@ -15,6 +15,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <Preferences.h>
 
 #include <Enums/ExpandEnums.hpp>
 #include <Debugger/Constants.hpp>
@@ -26,27 +27,7 @@
 
 namespace glob {
 
-/**
- * @name Task Priority Constants
- * @brief Recommended FreeRTOS priority levels for subsystem tasks.
- *
- * These constants map the subsystem names to `task::Task` priority levels
- * defined by the project's task utilities. They provide a single place to
- * adjust task priorities used when creating FreeRTOS tasks.
- */
-/*@{*/
-/** @brief Priority for WiFi-related task(s). */
-constexpr UBaseType_t WIFI_TASK_PRIORITY{task::Task::MediumPriority};
-
-/** @brief Priority for MQTT-related task(s). */
-constexpr UBaseType_t MQTT_TASK_PRIORITY{task::Task::MediumPriority};
-
-/** @brief Priority for debug/logging task(s). */
-constexpr UBaseType_t DEBUG_TASK_PRIORITY{task::Task::LowPriority};
-
-/** @brief Priority for LED driving tasks (real-time). */
-constexpr UBaseType_t LED_TASK_PRIORITY{task::Task::RealTimePriority};
-/*@}*/
+extern Preferences prefs;
 
 
 /**
