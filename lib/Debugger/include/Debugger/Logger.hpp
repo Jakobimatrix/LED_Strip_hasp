@@ -21,6 +21,7 @@
 #include <Arduino.h>
 #include <cstring>
 #include <cstdio>
+#include <mutex>
 
 #include <Debugger/Constants.hpp>
 #include <Debugger/Types.hpp>
@@ -35,6 +36,8 @@ namespace glob {
  */
 extern dbg::LEVEL LogLevel;     /**< Global minimum log level filter. */
 extern dbg::TOPIC LogTopicMask; /**< Global topic bitmask filter. */
+extern std::mutex sharedQueueMutex; /**< Mutex for synchronizing access to the shared debug queue. */
+
 }  // namespace glob
 
 namespace dbg {
@@ -77,8 +80,10 @@ constexpr bool write_arg(uint8_t*& ptr, const uint8_t* start, size_t size, const
  * @tparam Queue A queue-like type used to transport `ValueType` messages.
  *               Must provide `ValueType`, `push(...)`, and a fixed-size
  *               buffer API used by this logger.
+ * @tparam global_lock If `true`, the logger acquires a global mutex before
+ *                    writing to the queue. This is useful for shared queues
  */
-template <typename Queue>
+template <typename Queue, bool global_lock = false>
 class Logger {
  public:
   /**

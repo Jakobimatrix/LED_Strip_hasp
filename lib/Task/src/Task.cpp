@@ -144,13 +144,19 @@ void Task::sleepFixedDelay(TickType_t delay) {
 }
 
 void Task::logStackHighWaterMark(dbg::TOPIC topic) {
-  glob::dbgLedLogger.log(dbg::LEVEL::INFO,
-                         topic,
-                         "Stack size: ",
-                         getStackDepth(),
-                         " bytes, High Water Mark: ",
-                         getStackHighWaterMark(),
-                         " bytes");
+
+  const UBaseType_t currentHighWaterMark{getStackHighWaterMark()};
+  if (currentHighWaterMark <= lastReportedHighWaterMark) {
+    return;
+  }
+  lastReportedHighWaterMark = currentHighWaterMark;
+  glob::dbgTaskLogger.log(dbg::LEVEL::INFO,
+                          topic,
+                          "Stack size: ",
+                          getStackDepth(),
+                          " bytes, High Water Mark: ",
+                          currentHighWaterMark,
+                          " bytes");
 }
 
 }  // namespace task

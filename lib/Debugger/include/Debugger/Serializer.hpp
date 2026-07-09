@@ -106,9 +106,10 @@ class Serializer {
    * @tparam DebugMessageType Type of the message container (expects fields
    *         `level`, `topic`, `timestamp` and `buffer`).
    * @param msg Message instance to print.
+   * @param queue_index Index of the queue from which the message was popped.
    */
   template <typename DebugMessageType>
-  void print(const DebugMessageType& msg) const;
+  void print(const DebugMessageType& msg, std::size_t queue_index) const;
 
   /**
    * @brief Find which queue currently contains the oldest (earliest)
@@ -136,8 +137,9 @@ class Serializer {
    *
    * The function computes the load of each queue as `size() / capacity()` and
    * prints a warning message for any queue exceeding the 80% threshold.
+   * Reports the number of dropped messages for each queue and resets the counter.
    */
-  void debugQueueLoads() const;
+  void debugQueueLoads();
 
   /**
    * @brief Print a diagnostic warning if a message's internal buffer is
@@ -146,9 +148,10 @@ class Serializer {
    * @tparam DebugMessageType Type exposing `buffer.size` and
    *         `buffer.capacity()`.
    * @param msg Message to inspect.
+   * @param queue_index Index of the queue from which the message was popped.
    */
   template <typename DebugMessageType>
-  void debugMessageBufferSizeUsage(const DebugMessageType& msg) const;
+  void debugMessageBufferSizeUsage(const DebugMessageType& msg, std::size_t queue_index) const;
 
   /**
    * @brief Pop and print the oldest available message across all queues.

@@ -33,8 +33,6 @@ class TaskWiFiProvisioning : public Task {
   friend void provisioningTask(void* pvParameters);
 
   constexpr static uint32_t STACK_DEPTH{4096};
-  constexpr static char deviceName[]        = "ESP32_LED_STRIP";
-  constexpr static char proveOfPossession[] = "123456789";
 
   inline static constexpr const char* PROVISION_HTML = R"(
   <!DOCTYPE html>
@@ -53,8 +51,11 @@ class TaskWiFiProvisioning : public Task {
     <h2>WiFi Setup</h2>
     <p><!-- message --></p>
     <form action="/save" method="POST">
-      <label>SSID</label>
-      <input type="text" name="ssid" value="" required>
+    <label>SSID</label>
+    <input list="networks" name="ssid" value="" required>
+    <datalist id="networks">
+      <!-- networks -->
+    </datalist>
       <label>Password</label>
       <input type="password" name="password">
       <button type="submit">Save and Reboot</button>
@@ -62,6 +63,12 @@ class TaskWiFiProvisioning : public Task {
   </body>
   </html>
   )";
+
+  bool scanForWeakNetworks{false};
+  bool scanNetworksSuccessful{false};
+  bool scanningNetworks{false};
+  constexpr static uint32_t maxScanTimePerChannel{80};
+  constexpr static uint32_t maxScanTimePerChannelForWeakNetworks{300};
 
   String getHTML(const String& prev_ssid, const String& message) const;
 
@@ -81,6 +88,12 @@ class TaskWiFiProvisioning : public Task {
    * @brief Release resources and perform clean shutdown for the task.
    */
   void shutdown() override;
+
+  void scanNetworks() const;
+
+  void onNetworkScanComplete();
+
+  String getNetworkNames() const;
 };
 
 }  // namespace task

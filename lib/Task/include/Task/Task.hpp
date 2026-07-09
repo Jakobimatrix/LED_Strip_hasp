@@ -44,6 +44,8 @@ class Task {
    */
   TaskHandle_t handle{nullptr};
 
+  UBaseType_t lastReportedHighWaterMark{0};
+
 
   TickType_t cycle_start_tick;
 
@@ -59,7 +61,7 @@ class Task {
   /**
    * @brief Human-readable task name.
    */
-  typ::StaticString<16> name{"unnamed"};
+  typ::StaticString<32> name{"unnamed"};
 
   /**
    * @brief Task initialization hook to implement by subclasses.

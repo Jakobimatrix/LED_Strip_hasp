@@ -13,6 +13,7 @@ template <std::size_t Capacity, typename T>
   const std::size_t next = increment(head);
 
   if (next == tail_.load(std::memory_order_acquire)) {
+    ++num_dropped_messages_;
     return false;  // queue full
   }
 

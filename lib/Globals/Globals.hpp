@@ -53,17 +53,21 @@ using DebugQueue = typ::SpscQueue<Capacity, dbg::DebugMessage<MsgBufferSize>>;
  * interleaving messages and to allow independent sizing.
  */
 /*@{*/
-/** @brief Queue for MQTT subsystem debug messages.*/
+/** @brief Queue for MQTT debug messages.*/
 extern DebugQueue<16, 128> debugMqttQueue;
 
-/** @brief Queue for WiFi subsystem debug messages.*/
+/** @brief Queue for WiFi debug messages.*/
 extern DebugQueue<16, 128> debugWiFiQueue;
 
-/** @brief Queue for LED subsystem debug messages.*/
+/** @brief Queue for WiFi provisioning debug messages.*/
+extern DebugQueue<16, 128> debugWiFiProvQueue;
+
+/** @brief Queue for LED debug messages.*/
 extern DebugQueue<32, 128> debugLedQueue;
 
-/** @brief Queue for generic task/debug messages.*/
-extern DebugQueue<8, 62> debugTaskQueue;
+/** @brief Queue for shared debug messages USES MUTEX.*/
+extern DebugQueue<16, 128> sharedQueue;
+
 /*@}*/
 
 
@@ -79,15 +83,18 @@ extern DebugQueue<8, 62> debugTaskQueue;
 /** @brief Logger instance for WiFi messages (writes to `debugWiFiQueue`). */
 extern dbg::Logger<decltype(debugWiFiQueue)> dbgWiFiLogger;
 
+/** @brief Logger instance for WiFi provisioning messages (writes to `debugWiFiProvQueue`). */
+extern dbg::Logger<decltype(debugWiFiProvQueue)> dbgWiFiProvLogger;
+
 /** @brief Logger instance for MQTT messages (writes to `debugMqttQueue`). */
 extern dbg::Logger<decltype(debugMqttQueue)> dbgMqttLogger;
 
 /** @brief Logger instance for LED subsystem messages (writes to `debugLedQueue`). */
 extern dbg::Logger<decltype(debugLedQueue)> dbgLedLogger;
 
-/** @brief Logger instance for general task/debug messages (writes to `debugTaskQueue`). */
-extern dbg::Logger<decltype(debugTaskQueue)> dbgTaskLogger;
-/*@}*/
+/** @brief Logger instance for shared debug messages (writes to `sharedQueue`) USES MUTEX. */
+extern dbg::Logger<decltype(sharedQueue), true> dbgTaskLogger;
 
+/*@}*/
 
 }  // namespace glob

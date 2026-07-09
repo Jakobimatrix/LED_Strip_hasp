@@ -44,14 +44,14 @@ constexpr bool write_arg(uint8_t*& ptr, const uint8_t* start, size_t size, const
 }
 
 
-template <typename Queue>
-Logger<Queue>::Logger(Queue& q)
+template <typename Queue, bool global_lock>
+Logger<Queue, global_lock>::Logger(Queue& q)
     : queue_(q) {}
 
 
-template <typename Queue>
+template <typename Queue, bool global_lock>
 template <typename... Args>
-constexpr void Logger<Queue>::log(LEVEL lvl, TOPIC topic, const Args&... args) noexcept {
+constexpr void Logger<Queue, global_lock>::log(LEVEL lvl, TOPIC topic, const Args&... args) noexcept {
   if (!isSet(glob::LogLevel, lvl) || !isSet(glob::LogTopicMask, topic)) {
     return;  // filter out messages below global log level or not in global topic mask
   }
@@ -70,12 +70,18 @@ constexpr void Logger<Queue>::log(LEVEL lvl, TOPIC topic, const Args&... args) n
   msg.buffer.size = ptr - start;
 
   if (!ok) {
-    // const char* error_msg = "buffer overflow in next message!";
-    // log(LEVEL::ERROR, TOPIC::DEBUG, error_msg);
-    //  we can still print the first bits that did fit.
+    const char* error_msg = "buffer overflow in next message!";
+    log(LEVEL::ERROR, TOPIC::DEBUG, error_msg);
   }
-  if (!queue_.push(msg)) {
-    // handle push failure
+  if constexpr (global_lock) {
+    std::lock_guard<std::mutex> lock(glob::sharedQueueMutex);
+    [[maybe_unused]] bool pushed = queue_.push(msg);
+    // We cant do much now. No serial print in the thread!
+    // The Serializer Thread will report report the dropped message count.
+  } else {
+    [[maybe_unused]] bool pushed = queue_.push(msg);
+    // We cant do much now. No serial print in the thread!
+    // The Serializer Thread will report report the dropped message count.
   }
 }
 

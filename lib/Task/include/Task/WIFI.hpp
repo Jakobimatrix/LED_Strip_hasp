@@ -27,7 +27,8 @@ enum class WIFI_STATUS : std::uint8_t {
   NO_WIFI,
   CONNECTED,
   CONNECTING,
-  IDLE
+  IDLE,
+  OFF
 };
 
 namespace task {

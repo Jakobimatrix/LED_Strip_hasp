@@ -30,9 +30,10 @@ Serializer<Queues...>::Serializer(Queues&... qs)
 
 template <typename... Queues>
 template <typename DebugMessageType>
-void Serializer<Queues...>::print(const DebugMessageType& msg) const {
+void Serializer<Queues...>::print(const DebugMessageType& msg, std::size_t queue_index) const {
   const auto timestamp_str = timestamp2string(msg.timestamp);
-  std::printf("%s%s %s ",
+  std::printf("[%zu]%s%s %s ",
+              queue_index,
               lookup(LEVEL_LOOKUP, msg.level),
               lookup(TOPIC_LOOKUP, msg.topic),
               timestamp_str.c_str());
@@ -215,9 +216,9 @@ std::size_t Serializer<Queues...>::getQueueWithOldestMessage() const {
 }
 
 template <typename... Queues>
-void Serializer<Queues...>::debugQueueLoads() const {
+void Serializer<Queues...>::debugQueueLoads() {
   std::size_t index = 0;
-  auto debugQueue   = [&](const auto& q) {
+  auto debugQueue   = [&](auto& q) {
     const auto load = static_cast<float>(q.size()) / static_cast<float>(q.capacity());
     if (load > 0.8f) {
       std::printf("%s%s Queue %zu load is high: %.2f%%\n",
@@ -226,28 +227,44 @@ void Serializer<Queues...>::debugQueueLoads() const {
                   index,
                   load * 100.0f);
     }
+    const size_t dropped = q.getNumDroppedMessages();
+    if (dropped > 0) {
+      std::printf(
+        "%s%s Queue %zu has dropped %zu messages due to full queue.\n",
+        lookup(LEVEL_LOOKUP, LEVEL::WARN),
+        lookup(TOPIC_LOOKUP, TOPIC::DEBUG),
+        index,
+        dropped);
+      q.resetNumDroppedMessages();
+    }
     ++index;
   };
 
-  std::apply([&](const auto&... q) { (debugQueue(q), ...); }, queues_);
+  std::apply([&](auto&... q) { (debugQueue(q), ...); }, queues_);
 }
+
 
 template <typename... Queues>
 template <typename DebugMessageType>
-void Serializer<Queues...>::debugMessageBufferSizeUsage(const DebugMessageType& msg) const {
+void Serializer<Queues...>::debugMessageBufferSizeUsage(const DebugMessageType& msg,
+                                                        std::size_t queue_index) const {
 
   const auto used     = msg.buffer.size;
   const auto capacity = msg.buffer.capacity();
   const auto usage    = static_cast<float>(used) / static_cast<float>(capacity);
   if (usage > 0.95f) {
-    std::printf("%s%s Message buffer usage is high: %zu/%zu bytes (%.2f%%)\n",
-                lookup(LEVEL_LOOKUP, LEVEL::WARN),
-                lookup(TOPIC_LOOKUP, TOPIC::DEBUG),
-                used,
-                capacity,
-                usage * 100.0f);
+    std::printf(
+      "%s%s Message buffer of queue %zu usage is high: %zu/%zu bytes "
+      "(%.2f%%)\n",
+      lookup(LEVEL_LOOKUP, LEVEL::WARN),
+      lookup(TOPIC_LOOKUP, TOPIC::DEBUG),
+      queue_index,
+      used,
+      capacity,
+      usage * 100.0f);
   }
 }
+
 
 template <typename... Queues>
 [[nodiscard]] bool Serializer<Queues...>::printNext() {
@@ -256,7 +273,7 @@ template <typename... Queues>
   if (earliest_index == std::numeric_limits<std::size_t>::max()) {
     return false;
   }
-  tuple_runtime_visit(queues_, earliest_index, [this](auto& queue) {
+  tuple_runtime_visit(queues_, earliest_index, [this, earliest_index](auto& queue) {
     using Queue = std::remove_reference_t<decltype(queue)>;
     using Msg   = typename Queue::ValueType;
 
@@ -264,8 +281,8 @@ template <typename... Queues>
     if (!queue.pop(msg)) {
       return;
     }
-    print(msg);
-    debugMessageBufferSizeUsage(msg);
+    print(msg, earliest_index);
+    debugMessageBufferSizeUsage(msg, earliest_index);
   });
 
   debugQueueLoads();

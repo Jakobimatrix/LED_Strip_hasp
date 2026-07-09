@@ -19,12 +19,12 @@ void wifiTask(void* pvParameters) {
     const auto [old_status, new_status] = self->checkWiFiStatusChange();
     const bool status_has_changed{old_status != new_status};
     if (status_has_changed) {
-      glob::dbgLedLogger.log(dbg::LEVEL::INFO,
-                             dbg::TOPIC::WIFI,
-                             "WiFi status changed: ",
-                             toString(old_status).c_str(),
-                             " -> ",
-                             toString(new_status).c_str());
+      glob::dbgWiFiLogger.log(dbg::LEVEL::INFO,
+                              dbg::TOPIC::WIFI,
+                              "WiFi status changed: ",
+                              toString(old_status).c_str(),
+                              " -> ",
+                              toString(new_status).c_str());
     }
     switch (new_status) {
       case WL_STOPPED: {
@@ -69,7 +69,7 @@ void wifiTask(void* pvParameters) {
       }
     }
 
-    // self->logStackHighWaterMark(dbg::TOPIC::WIFI);
+    self->logStackHighWaterMark(dbg::TOPIC::WIFI);
     self->sleepFixedDelay(pdMS_TO_TICKS(1000));
   }
   self->shutdown();
@@ -92,7 +92,7 @@ bool TaskWIFI::startProvisioningTask() {
 void TaskWIFI::startWiFi() {
   if (startProvisioningTask()) {
     glob::dbgWiFiLogger.log(
-      dbg::LEVEL::ERROR, dbg::TOPIC::WIFI, "Starting provisioning softAP.");
+      dbg::LEVEL::INFO, dbg::TOPIC::WIFI, "Starting provisioning softAP.");
   }
 }
 
@@ -105,10 +105,11 @@ void TaskWIFI::stopWiFi() {
 void TaskWIFI::resetWiFi() {
   const bool turnWiFiRadioOff{true};
   const bool eraseCredentials{true};
+  WiFi.scanDelete();
   WiFi.disconnectAsync(turnWiFiRadioOff, eraseCredentials);
   glob::Credentials creds;
   creds.clear();
-  startProvisioningTask();
+  startWiFi();
 }
 
 void TaskWIFI::dealWithWiFiStopped(wl_status_t prev_status) {
@@ -188,28 +189,7 @@ void TaskWIFI::dealWithWiFiNoSSIDAvail(wl_status_t prev_status) {
 }
 
 void TaskWIFI::dealWithWiFiScanCompleted(wl_status_t prev_status) {
-  if (prev_status == WL_SCAN_COMPLETED) {
-    return;
-  }
-  // get all available networks:
-  int num_networks = WiFi.scanComplete();
-  glob::dbgWiFiLogger.log(dbg::LEVEL::INFO,
-                          dbg::TOPIC::WIFI,
-                          "WiFi scan completed. Found ",
-                          num_networks,
-                          " networks.");
-  for (int i = 0; i < num_networks; ++i) {
-    glob::dbgWiFiLogger.log(dbg::LEVEL::INFO,
-                            dbg::TOPIC::WIFI,
-                            "Network ",
-                            i,
-                            ": SSID='",
-                            WiFi.SSID(i).c_str(),
-                            "', RSSI=",
-                            WiFi.RSSI(i),
-                            " dBm, Encryption=",
-                            static_cast<short>(WiFi.encryptionType(i)));
-  }
+  // WiFiProvisioning is doing things, let it cook.
 }
 
 void TaskWIFI::dealWithWiFiConnectFailed(wl_status_t prev_status) {
@@ -282,6 +262,7 @@ WIFI_STATUS TaskWIFI::getWifiStatus() const {
   const wl_status_t wifi_status = WiFi.status();
   switch (wifi_status) {
     case WL_STOPPED:
+      return WIFI_STATUS::OFF;
     case WL_IDLE_STATUS:
       return WIFI_STATUS::IDLE;
     case WL_NO_SHIELD:

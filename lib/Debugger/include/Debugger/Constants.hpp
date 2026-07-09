@@ -52,14 +52,15 @@ enum class LEVEL : unsigned long {
  * for efficient combination and testing.
  */
 enum class TOPIC : unsigned long {
-  NONE  = 0x00000000, /**< No specific topic. */
-  MQTT  = 0x00000001, /**< MQTT subsystem. */
-  BOOT  = 0x00000002, /**< Boot / initialization code. */
-  DEBUG = 0x00000004, /**< Miscellaneous debug messages. */
-  TASK  = 0x00000008, /**< Task scheduler / task-related messages. */
-  WIFI  = 0x00000010, /**< WiFi subsystem. */
-  LED   = 0x00000020, /**< LED handling / animations. */
-  PERF  = 0x00000040  /**< Performance / profiling related messages. */
+  NONE     = 0x00000000, /**< No specific topic. */
+  MQTT     = 0x00000001, /**< MQTT subsystem. */
+  BOOT     = 0x00000002, /**< Boot / initialization code. */
+  DEBUG    = 0x00000004, /**< Miscellaneous debug messages. */
+  TASK     = 0x00000008, /**< Task scheduler / task-related messages. */
+  WIFI     = 0x00000010, /**< WiFi subsystem. */
+  WIFIPROV = 0x00000020, /**< WiFi provisioning. */
+  LED      = 0x00000040, /**< LED handling / animations. */
+  PERF     = 0x00000080  /**< Performance / profiling related messages. */
 };
 
 // clang-format off
@@ -89,7 +90,7 @@ static constexpr typ::Map<LEVEL, const char*, NUM_LEVELS> LEVEL_LOOKUP{{
 /**
  * @brief Number of entries in `TOPIC_LOOKUP`.
  */
-static constexpr unsigned NUM_TOPICS = 8;
+static constexpr unsigned NUM_TOPICS = 9;
 
 /**
  * @brief Lookup table mapping `TOPIC` values to fixed-width labels.
@@ -105,6 +106,7 @@ static constexpr typ::Map<TOPIC, const char *, NUM_TOPICS> TOPIC_LOOKUP{{
   {TOPIC::DEBUG,     "[DEBUG]      "},
   {TOPIC::TASK,      "[TASK]       "},
   {TOPIC::WIFI,      "[WIFI]       "},
+  {TOPIC::WIFIPROV,  "[WIFIPROVISN]"},
   {TOPIC::LED,       "[LED]        "},
   {TOPIC::PERF,      "[PERFORMANCE]"}
 }};

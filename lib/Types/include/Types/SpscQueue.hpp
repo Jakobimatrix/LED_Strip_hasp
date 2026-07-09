@@ -115,6 +115,20 @@ class SpscQueue {
    */
   [[nodiscard]] std::size_t capacity() const noexcept { return Capacity - 1; }
 
+  /**
+   * @brief Get the number of messages dropped due to queue being full.
+   *
+   * @return std::size_t Number of dropped messages.
+   */
+  [[nodiscard]] std::size_t getNumDroppedMessages() const noexcept {
+    return num_dropped_messages_;
+  }
+
+  /**
+   * @brief Reset the dropped message counter.
+   */
+  void resetNumDroppedMessages() noexcept { num_dropped_messages_ = 0; }
+
  private:
   /**
    * @brief Increment index in a wrap-around (power-of-two optimized) manner.
@@ -141,6 +155,11 @@ class SpscQueue {
    * @brief Consumer index (tail). Points to next read position.
    */
   alignas(64) std::atomic<std::size_t> tail_{0};
+
+  /**
+   * @brief Count of messages dropped due to queue being full.
+   */
+  std::size_t num_dropped_messages_{0};
 };
 
 }  // namespace typ

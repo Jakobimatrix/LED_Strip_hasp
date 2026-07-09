@@ -12,6 +12,7 @@ void ledBlinkTask(void* pvParameters) {
   auto* self = static_cast<TaskBlinkOnboardLED*>(pvParameters);
 
   TickType_t lastWakeTime = xTaskGetTickCount();
+  self->taskWiFi.setWifiOn(true);
 
   while (!self->isStopRequested()) {
     digitalWrite(self->ledPin, self->ledState);
@@ -19,13 +20,15 @@ void ledBlinkTask(void* pvParameters) {
 
     self->handleWiFiTask();
 
-    //  self->logStackHighWaterMark(dbg::TOPIC::LED);
+    self->logStackHighWaterMark(dbg::TOPIC::LED);
 
     if (digitalRead(RESET_PIN) == LOW) {
       delay(50);  // debounce
       if (digitalRead(RESET_PIN) == LOW) {
         self->taskWiFi.resetWiFi();
-        Serial.println("Reset detected. Cleared credentials.");
+        glob::dbgLedLogger.log(dbg::LEVEL::INFO,
+                               dbg::TOPIC::LED,
+                               "Reset detected. Cleared credentials.");
       }
     }
 
@@ -61,6 +64,10 @@ void TaskBlinkOnboardLED::handleWiFiTask() {
     case WIFI_STATUS::IDLE:
       current_led_pattern = LED_PATTERN::IDLE;
       return;
+    case WIFI_STATUS::OFF:
+      taskWiFi.setWifiOn(true);
+      current_led_pattern = LED_PATTERN::WIFI_CONNECTION;
+      return;
   }
 }
 
@@ -74,6 +81,12 @@ TickType_t TaskBlinkOnboardLED::getPeriodSleep() {
       return HEART_BEAT_PATTERN[current_period_index];
     case LED_PATTERN::NEED_PROVISIONING:
       return NEED_PROVISIONING_PATTERN[current_period_index];
+    case LED_PATTERN::WIFI_CONNECTION:
+      return WIFI_CONNECTION_PATTERN[current_period_index];
+    case LED_PATTERN::NO_WIFI_ERROR:
+      return NO_WIFI_ERROR_PATTERN[current_period_index];
+    case LED_PATTERN::IDLE:
+      return IDLE_PATTERN[current_period_index];
     default:
       return HEART_BEAT_PATTERN[current_period_index];
   }

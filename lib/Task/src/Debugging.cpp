@@ -10,10 +10,14 @@ namespace task {
 void debuggerTask(void* pvParameters) {
   auto* self = static_cast<TaskDebugging*>(pvParameters);
 
-  auto serializer = dbg::Serializer(
-    glob::debugTaskQueue, glob::debugWiFiQueue, glob::debugMqttQueue, glob::debugLedQueue);
+  auto serializer = dbg::Serializer(glob::sharedQueue,
+                                    glob::debugWiFiProvQueue,
+                                    glob::debugWiFiQueue,
+                                    glob::debugMqttQueue,
+                                    glob::debugLedQueue);
 
   while (!self->isStopRequested()) {
+    self->logStackHighWaterMark(dbg::TOPIC::PERF);
     vTaskDelay(pdMS_TO_TICKS(20));
     while (serializer.printNext()) {
       vTaskDelay(pdMS_TO_TICKS(5));

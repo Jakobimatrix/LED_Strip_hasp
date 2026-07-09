@@ -70,44 +70,44 @@ class TaskBlinkOnboardLED : public Task {
   LED_PATTERN current_led_pattern{LED_PATTERN::HEART_BEAT};
 
   static constexpr std::array<TickType_t, NUM_PERIODS> HEART_BEAT_PATTERN{
-    pdMS_TO_TICKS(500),
-    pdMS_TO_TICKS(500),
-    pdMS_TO_TICKS(500),
-    pdMS_TO_TICKS(500),
-    pdMS_TO_TICKS(500),
-    pdMS_TO_TICKS(500)};
+    pdMS_TO_TICKS(500),   // off
+    pdMS_TO_TICKS(500),   // on
+    pdMS_TO_TICKS(500),   // off
+    pdMS_TO_TICKS(500),   // on
+    pdMS_TO_TICKS(500),   // off
+    pdMS_TO_TICKS(500)};  // on
 
   static constexpr std::array<TickType_t, NUM_PERIODS> NEED_PROVISIONING_PATTERN{
-    pdMS_TO_TICKS(10000),
-    pdMS_TO_TICKS(1),
-    pdMS_TO_TICKS(10000),
-    pdMS_TO_TICKS(1),
-    pdMS_TO_TICKS(10000),
-    pdMS_TO_TICKS(1)};
+    pdMS_TO_TICKS(1),       // off
+    pdMS_TO_TICKS(10000),   // on
+    pdMS_TO_TICKS(1),       // off
+    pdMS_TO_TICKS(10000),   // on
+    pdMS_TO_TICKS(1),       // off
+    pdMS_TO_TICKS(10000)};  // on
 
   static constexpr std::array<TickType_t, NUM_PERIODS> WIFI_CONNECTION_PATTERN{
-    pdMS_TO_TICKS(200),
-    pdMS_TO_TICKS(200),
-    pdMS_TO_TICKS(200),
-    pdMS_TO_TICKS(200),
-    pdMS_TO_TICKS(200),
-    pdMS_TO_TICKS(200)};
+    pdMS_TO_TICKS(200),   // off
+    pdMS_TO_TICKS(200),   // on
+    pdMS_TO_TICKS(200),   // off
+    pdMS_TO_TICKS(200),   // on
+    pdMS_TO_TICKS(200),   // off
+    pdMS_TO_TICKS(200)};  // on
 
   static constexpr std::array<TickType_t, NUM_PERIODS> NO_WIFI_ERROR_PATTERN{
-    pdMS_TO_TICKS(1000),
-    pdMS_TO_TICKS(100),
-    pdMS_TO_TICKS(1000),
-    pdMS_TO_TICKS(100),
-    pdMS_TO_TICKS(1000),
-    pdMS_TO_TICKS(100)};
+    pdMS_TO_TICKS(1000),  // off
+    pdMS_TO_TICKS(100),   // on
+    pdMS_TO_TICKS(1000),  // off
+    pdMS_TO_TICKS(100),   // on
+    pdMS_TO_TICKS(1000),  // off
+    pdMS_TO_TICKS(100)};  // on
 
   static constexpr std::array<TickType_t, NUM_PERIODS> IDLE_PATTERN{
-    pdMS_TO_TICKS(100),
-    pdMS_TO_TICKS(2000),
-    pdMS_TO_TICKS(100),
-    pdMS_TO_TICKS(2000),
-    pdMS_TO_TICKS(100),
-    pdMS_TO_TICKS(2000)};
+    pdMS_TO_TICKS(100),    // off
+    pdMS_TO_TICKS(2000),   // on
+    pdMS_TO_TICKS(100),    // off
+    pdMS_TO_TICKS(2000),   // on
+    pdMS_TO_TICKS(100),    // off
+    pdMS_TO_TICKS(2000)};  // on
 
 
  public:
