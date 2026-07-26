@@ -76,9 +76,8 @@ void wifiTask(void* pvParameters) {
 }
 
 bool TaskWIFI::needsProvisioning() const {
-  glob::Credentials creds;
-  creds.load();
-  return !creds.hasCredentials();
+  glob::Credentials& credentials{glob::Credentials::getInstance()};
+  return !credentials.hasCredentials();
 }
 
 bool TaskWIFI::startProvisioningTask() {
@@ -107,8 +106,8 @@ void TaskWIFI::resetWiFi() {
   const bool eraseCredentials{true};
   WiFi.scanDelete();
   WiFi.disconnectAsync(turnWiFiRadioOff, eraseCredentials);
-  glob::Credentials creds;
-  creds.clear();
+  glob::Credentials& credentials{glob::Credentials::getInstance()};
+  credentials.clear();
   startWiFi();
 }
 

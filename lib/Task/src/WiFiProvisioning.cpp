@@ -39,7 +39,7 @@ void provisioningTask(void* pvParameters) {
   auto* self = static_cast<TaskWiFiProvisioning*>(pvParameters);
 
   constexpr int HTTP_PORT             = 80;
-  constexpr static char AP_SSID[]     = "ESP32-Setup";
+  constexpr static char AP_SSID_PRE[] = "ESP32-Setup-%04X";
   constexpr static char AP_PASSWORD[] = "";
 
   const IPAddress AP_IP(192, 168, 4, 1);
@@ -48,15 +48,23 @@ void provisioningTask(void* pvParameters) {
   WebServer server{HTTP_PORT};
   DNSServer dns;
 
+  server.stop();
+  dns.stop();
+  WiFi.disconnect(false, true);
+
   glob::dbgWiFiProvLogger.log(dbg::LEVEL::INFO,
                               dbg::TOPIC::WIFIPROV,
                               "Starting WiFi provisioning task...");
 
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAPConfig(AP_IP, AP_IP, AP_SUBNET);
-  WiFi.softAP(AP_SSID, AP_PASSWORD);
 
-  glob::Credentials credentials;
+  char rand_ssid[32];
+  snprintf(rand_ssid, sizeof(rand_ssid), AP_SSID_PRE, static_cast<unsigned>(esp_random() & 0xFFFF));
+
+  WiFi.softAP(rand_ssid, AP_PASSWORD);
+
+  glob::Credentials& credentials{glob::Credentials::getInstance()};
   const bool hadCredentials = credentials.hasCredentials();
   if (hadCredentials) {
     WiFi.begin(credentials.getSSID().c_str(), credentials.getPassword().c_str());
@@ -74,7 +82,7 @@ void provisioningTask(void* pvParameters) {
                               "WiFi provisioning AP IP: ",
                               WiFi.softAPIP().toString().c_str(),
                               " SSID: ",
-                              AP_SSID,
+                              rand_ssid,
                               " Password: ",
                               AP_PASSWORD);
 
@@ -89,6 +97,8 @@ void provisioningTask(void* pvParameters) {
   glob::dbgWiFiProvLogger.log(dbg::LEVEL::INFO,
                               dbg::TOPIC::WIFIPROV,
                               "Starting WiFi provisioning Server Online.");
+
+  self->sleepFixedDelay(pdMS_TO_TICKS(300));
 
   while (!self->isStopRequested()) {
     if (WiFi.status() == WL_CONNECTED) {
@@ -124,10 +134,6 @@ void provisioningTask(void* pvParameters) {
 }
 
 void TaskWiFiProvisioning::scanNetworks() {
-  glob::dbgWiFiProvLogger.log(
-    dbg::LEVEL::INFO, dbg::TOPIC::WIFIPROV, "START NETWORK SCAN!");
-  sleepFixedDelay(pdMS_TO_TICKS(300));
-
   constexpr bool async_scan = true;
   const uint32_t max_ms_per_chan =
     scanForWeakNetworks ? maxScanTimePerChannelForWeakNetworks : maxScanTimePerChannel;
@@ -136,9 +142,6 @@ void TaskWiFiProvisioning::scanNetworks() {
   const bool passive        = false;  // active scan
   WiFi.scanNetworks(
     async_scan, show_hidden, passive, max_ms_per_chan, channel, nullptr, nullptr);
-  glob::dbgWiFiProvLogger.log(
-    dbg::LEVEL::INFO, dbg::TOPIC::WIFIPROV, "ASYNC NETWORK SCAN STARTED!");
-  sleepFixedDelay(pdMS_TO_TICKS(300));
 }
 
 
@@ -182,11 +185,13 @@ String TaskWiFiProvisioning::getNetworkNames() const {
 
 
 void TaskWiFiProvisioning::handleRoot(WebServer& server) {
-  glob::Credentials credentials;
+  glob::Credentials& credentials{glob::Credentials::getInstance()};
   server.send(
     200,
     "text/html",
     getHTML(credentials.getSSID(), "Please enter your WiFi credentials."));
+  glob::dbgWiFiProvLogger.log(
+    dbg::LEVEL::INFO, dbg::TOPIC::WIFIPROV, "HTML served. Waiting for input...");
 }
 
 String TaskWiFiProvisioning::getHTML(const String& prev_ssid, const String& message) const {
@@ -200,6 +205,9 @@ String TaskWiFiProvisioning::getHTML(const String& prev_ssid, const String& mess
 }
 
 void TaskWiFiProvisioning::handleSave(WebServer& server) {
+  glob::dbgWiFiProvLogger.log(
+    dbg::LEVEL::INFO, dbg::TOPIC::WIFIPROV, "HTML response received.");
+
   String ssid = server.arg("ssid");
   if (ssid.isEmpty()) {
     ssid = server.arg("ssid_manual");
@@ -207,9 +215,11 @@ void TaskWiFiProvisioning::handleSave(WebServer& server) {
 
   if (ssid.isEmpty()) {
     server.send(400, "text/plain", "SSID required");
+    glob::dbgWiFiProvLogger.log(
+      dbg::LEVEL::WARN, dbg::TOPIC::WIFIPROV, "HTML SSID input missing.");
     return;
   }
-  glob::Credentials credentials;
+  glob::Credentials& credentials{glob::Credentials::getInstance()};
   if (credentials.hasCredentials()) {
     glob::dbgWiFiProvLogger.log(dbg::LEVEL::INFO,
                                 dbg::TOPIC::WIFIPROV,
@@ -247,11 +257,6 @@ void TaskWiFiProvisioning::handleSave(WebServer& server) {
                                 dbg::TOPIC::WIFIPROV,
                                 "Connected to WiFi. IP address: ",
                                 WiFi.localIP().toString().c_str());
-    server.send(200,
-                "text/html",
-                "<html><body><h2>Connected to WiFi. IP address: " +
-                  WiFi.localIP().toString() + "</h2></body></html>");
-    server.handleClient();
     sleepFixedDelay(pdMS_TO_TICKS(2000));
     stop();
     return;

@@ -22,7 +22,7 @@ void ledBlinkTask(void* pvParameters) {
 
     self->logStackHighWaterMark(dbg::TOPIC::LED);
 
-    /*
+
     if (digitalRead(RESET_PIN) == LOW) {
       delay(50);  // debounce
       if (digitalRead(RESET_PIN) == LOW) {
@@ -31,7 +31,7 @@ void ledBlinkTask(void* pvParameters) {
                                dbg::TOPIC::LED,
                                "Reset detected. Cleared credentials.");
       }
-    }*/
+    }
     self->sleepFixedRate(self->getPeriodSleep());
   }
 

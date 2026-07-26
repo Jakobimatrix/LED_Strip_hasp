@@ -12,6 +12,14 @@ void setup() {
   delay(1500);
   Serial.println("BOOT: serial ready");
 
+  for (int i = 0; i < 100; ++i) {
+    Serial.print(".");
+    delay(50);
+  }
+  Serial.println();
+  // without this stupid loop, logging doesnt work reliably
+
+
   if (!taskDebugging.start()) {
     Serial.println("BOOT: Failed to start debugger task.");
   }

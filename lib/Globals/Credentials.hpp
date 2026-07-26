@@ -14,7 +14,7 @@ class Credentials {
   String ssid;
   String password;
 
- public:
+
   /**
    * @brief Loads credentials from persistent storage on construction.
    */
@@ -29,6 +29,15 @@ class Credentials {
    * be empty strings.
    */
   void load();
+
+ public:
+  static Credentials& getInstance() {
+    static Credentials instance;
+    return instance;
+  }
+
+  Credentials(const Credentials&)            = delete;
+  Credentials& operator=(const Credentials&) = delete;
 
   /**
    * @brief Check if valid credentials are available.
