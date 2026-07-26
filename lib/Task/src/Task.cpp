@@ -100,24 +100,21 @@ BaseType_t Task::createTask(TaskFunction_t pxTaskCode,
     const std::string_view name_view{pcName};
     name.assign(name_view.substr(0, name.capacity()));
   }
-  cycle_start_tick = xTaskGetTickCount();
+  startCycleTime();
   return ret;
 }
 
+void Task::startCycleTime() { cycle_start_tick = xTaskGetTickCount(); }
+
 void Task::sleepFixedRate(TickType_t period) {
   if (stopRequested.load()) {
-    glob::dbgTaskLogger.log(dbg::LEVEL::INFO,
-                            dbg::TOPIC::TASK,
-                            "Stop requested for task ",
-                            name.c_str(),
-                            ". Exiting sleep loop.");
     return;
   }
   const TickType_t current_time{xTaskGetTickCount()};
   const TickType_t elapsedTime{current_time - cycle_start_tick};
 
 
-  if (elapsedTime >= period) {
+  if (elapsedTime > period - pdMS_TO_TICKS(1)) {
     glob::dbgTaskLogger.log(dbg::LEVEL::WARN,
                             dbg::TOPIC::TASK,
                             "Task ",
@@ -127,17 +124,13 @@ void Task::sleepFixedRate(TickType_t period) {
                             " ms, Target: ",
                             pdTICKS_TO_MS(period),
                             " ms");
+    cycle_start_tick = xTaskGetTickCount() - period;
   }
   vTaskDelayUntil(&cycle_start_tick, period);
 }
 
 void Task::sleepFixedDelay(TickType_t delay) {
   if (stopRequested.load()) {
-    glob::dbgTaskLogger.log(dbg::LEVEL::INFO,
-                            dbg::TOPIC::TASK,
-                            "Stop requested for task ",
-                            name.c_str(),
-                            ". Exiting sleep loop.");
     return;
   }
   vTaskDelay(delay);

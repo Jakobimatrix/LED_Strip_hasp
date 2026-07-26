@@ -11,7 +11,7 @@ namespace task {
 void ledBlinkTask(void* pvParameters) {
   auto* self = static_cast<TaskBlinkOnboardLED*>(pvParameters);
 
-  TickType_t lastWakeTime = xTaskGetTickCount();
+  self->startCycleTime();
   self->taskWiFi.setWifiOn(true);
 
   while (!self->isStopRequested()) {
@@ -22,17 +22,17 @@ void ledBlinkTask(void* pvParameters) {
 
     self->logStackHighWaterMark(dbg::TOPIC::LED);
 
+    /*
     if (digitalRead(RESET_PIN) == LOW) {
       delay(50);  // debounce
       if (digitalRead(RESET_PIN) == LOW) {
-        self->taskWiFi.resetWiFi();
+        // self->taskWiFi.resetWiFi();
         glob::dbgLedLogger.log(dbg::LEVEL::INFO,
                                dbg::TOPIC::LED,
                                "Reset detected. Cleared credentials.");
       }
-    }
-
-    vTaskDelayUntil(&lastWakeTime, self->getPeriodSleep());
+    }*/
+    self->sleepFixedRate(self->getPeriodSleep());
   }
 
   self->shutdown();
@@ -93,6 +93,7 @@ TickType_t TaskBlinkOnboardLED::getPeriodSleep() {
 }
 
 bool TaskBlinkOnboardLED::setup() {
+  name = "BlinkOnboardLED";
   pinMode(ledPin, OUTPUT);
   pinMode(RESET_PIN, INPUT_PULLUP);
   return pdPASS == createTask(ledBlinkTask,

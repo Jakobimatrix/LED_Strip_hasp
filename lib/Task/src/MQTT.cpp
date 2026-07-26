@@ -14,12 +14,9 @@ void mqttTask(void* pvParameters) {
 }
 
 bool TaskMQTT::setup() {
-  return pdPASS == createTask(mqttTask,
-                              "MQTT Task",
-                              TaskMQTT::STACK_DEPTH,
-                              this,
-                              task::MQTT_TASK_PRIORITY,
-                              Task::NonRealTimeCore);
+  return pdPASS ==
+         createTask(
+           mqttTask, "MQTT", TaskMQTT::STACK_DEPTH, this, task::MQTT_TASK_PRIORITY, Task::NonRealTimeCore);
 }
 
 void TaskMQTT::shutdown() { deleteHandle(); }

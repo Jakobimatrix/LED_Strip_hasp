@@ -123,7 +123,11 @@ void provisioningTask(void* pvParameters) {
   self->shutdown();
 }
 
-void TaskWiFiProvisioning::scanNetworks() const {
+void TaskWiFiProvisioning::scanNetworks() {
+  glob::dbgWiFiProvLogger.log(
+    dbg::LEVEL::INFO, dbg::TOPIC::WIFIPROV, "START NETWORK SCAN!");
+  sleepFixedDelay(pdMS_TO_TICKS(300));
+
   constexpr bool async_scan = true;
   const uint32_t max_ms_per_chan =
     scanForWeakNetworks ? maxScanTimePerChannelForWeakNetworks : maxScanTimePerChannel;
@@ -132,6 +136,9 @@ void TaskWiFiProvisioning::scanNetworks() const {
   const bool passive        = false;  // active scan
   WiFi.scanNetworks(
     async_scan, show_hidden, passive, max_ms_per_chan, channel, nullptr, nullptr);
+  glob::dbgWiFiProvLogger.log(
+    dbg::LEVEL::INFO, dbg::TOPIC::WIFIPROV, "ASYNC NETWORK SCAN STARTED!");
+  sleepFixedDelay(pdMS_TO_TICKS(300));
 }
 
 
@@ -145,24 +152,16 @@ String TaskWiFiProvisioning::getNetworkNames() const {
   std::vector<String> ssid_list;
   ssid_list.reserve(static_cast<size_t>(num_networks));
 
-  size_t num_chars{0};
-  constexpr size_t HTML_OPTION_OVERHEAD{17};  // <option value="">
+  constexpr std::string_view DEFAULT_OPTION{
+    "<option value=\"\">Select a network</option>"};
+  size_t num_chars{DEFAULT_OPTION.size()};
+  constexpr size_t HTML_OPTION_OVERHEAD{27};  // <option value=""></option>
   for (int i = 0; i < num_networks; ++i) {
     const String ssid = WiFi.SSID(i);
 
     // Skip hidden networks
     if (ssid.isEmpty())
       continue;
-
-    glob::dbgWiFiProvLogger.log(dbg::LEVEL::INFO,
-                                dbg::TOPIC::WIFIPROV,
-                                "Network ",
-                                i,
-                                ": SSID='",
-                                ssid.c_str(),
-                                "', RSSI=",
-                                WiFi.RSSI(i),
-                                " dBm");
     ssid_list.push_back(ssid);
     num_chars += ssid.length() + HTML_OPTION_OVERHEAD;
   }
@@ -170,10 +169,13 @@ String TaskWiFiProvisioning::getNetworkNames() const {
 
   String options;
   options.reserve(num_chars);
+  options.concat(DEFAULT_OPTION.data(), DEFAULT_OPTION.size());
   for (const auto& ssid : ssid_list) {
     options += "<option value=\"";
     options += ssid;
     options += "\">";
+    options += ssid;
+    options += "</option>";
   }
   return options;
 }
@@ -190,7 +192,7 @@ void TaskWiFiProvisioning::handleRoot(WebServer& server) {
 String TaskWiFiProvisioning::getHTML(const String& prev_ssid, const String& message) const {
 
   String html = PROVISION_HTML;
-  html.replace("value=\"\"", String("value=\"") + prev_ssid + "\"");
+  html.replace("<!-- prev_ssid -->", prev_ssid);
   html.replace("<!-- message -->", message);
   html.replace("<!-- networks -->", getNetworkNames());
 
@@ -198,7 +200,12 @@ String TaskWiFiProvisioning::getHTML(const String& prev_ssid, const String& mess
 }
 
 void TaskWiFiProvisioning::handleSave(WebServer& server) {
-  if (!server.hasArg("ssid") || server.arg("ssid").isEmpty()) {
+  String ssid = server.arg("ssid");
+  if (ssid.isEmpty()) {
+    ssid = server.arg("ssid_manual");
+  }
+
+  if (ssid.isEmpty()) {
     server.send(400, "text/plain", "SSID required");
     return;
   }
@@ -208,12 +215,12 @@ void TaskWiFiProvisioning::handleSave(WebServer& server) {
                                 dbg::TOPIC::WIFIPROV,
                                 "Overwriting existing WiFi credentials.");
   }
-  credentials.save(server.arg("ssid"), server.arg("password"));
+  credentials.save(ssid, server.arg("password"));
   glob::dbgWiFiProvLogger.log(dbg::LEVEL::INFO,
                               dbg::TOPIC::WIFIPROV,
                               "Saved WiFi credentials: SSID='",
-                              server.arg("ssid").c_str(),
-                              "', Password_size: %ul",
+                              ssid.c_str(),
+                              "', Password_size: ",
                               server.arg("password").length(),
                               "'");
 
@@ -245,8 +252,9 @@ void TaskWiFiProvisioning::handleSave(WebServer& server) {
                 "<html><body><h2>Connected to WiFi. IP address: " +
                   WiFi.localIP().toString() + "</h2></body></html>");
     server.handleClient();
-    delay(pdMS_TO_TICKS(2000));
+    sleepFixedDelay(pdMS_TO_TICKS(2000));
     stop();
+    return;
   }
 
   glob::dbgWiFiProvLogger.log(
@@ -257,15 +265,13 @@ void TaskWiFiProvisioning::handleSave(WebServer& server) {
     "Failed to connect to WiFi. Please check your credentials "
     "and try again. Current status: ";
 
-  server.send(401,
-              "text/html",
-              getHTML(server.arg("ssid"), statusMessage + String(status.c_str())));
+  server.send(401, "text/html", getHTML(ssid, statusMessage + String(status.c_str())));
   server.handleClient();
 }
 
 bool TaskWiFiProvisioning::setup() {
   return pdPASS == createTask(provisioningTask,
-                              "WIFI Provisioning",
+                              "WiFi Provisioning",
                               TaskWiFiProvisioning::STACK_DEPTH,
                               this,
                               task::WIFI_TASK_PRIORITY,

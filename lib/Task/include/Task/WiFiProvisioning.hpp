@@ -51,14 +51,16 @@ class TaskWiFiProvisioning : public Task {
     <h2>WiFi Setup</h2>
     <p><!-- message --></p>
     <form action="/save" method="POST">
-    <label>SSID</label>
-    <input list="networks" name="ssid" value="" required>
-    <datalist id="networks">
+    <label for="ssid">SSID</label>
+    <select id="ssid" name="ssid" required>
+      <option value="">Select a network</option>
       <!-- networks -->
-    </datalist>
-      <label>Password</label>
-      <input type="password" name="password">
-      <button type="submit">Save and Reboot</button>
+    </select>
+    <label for="ssid_manual">Or enter manually</label>
+    <input id="ssid_manual" name="ssid_manual" type="text" value="<!-- prev_ssid -->" placeholder="Enter SSID manually">
+    <label>Password</label>
+    <input type="password" name="password">
+    <button type="submit">Save and Connect</button>
     </form>
   </body>
   </html>
@@ -89,7 +91,7 @@ class TaskWiFiProvisioning : public Task {
    */
   void shutdown() override;
 
-  void scanNetworks() const;
+  void scanNetworks();
 
   void onNetworkScanComplete();
 

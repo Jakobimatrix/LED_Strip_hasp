@@ -78,11 +78,11 @@ class TaskBlinkOnboardLED : public Task {
     pdMS_TO_TICKS(500)};  // on
 
   static constexpr std::array<TickType_t, NUM_PERIODS> NEED_PROVISIONING_PATTERN{
-    pdMS_TO_TICKS(1),       // off
+    pdMS_TO_TICKS(10),      // off
     pdMS_TO_TICKS(10000),   // on
-    pdMS_TO_TICKS(1),       // off
+    pdMS_TO_TICKS(10),      // off
     pdMS_TO_TICKS(10000),   // on
-    pdMS_TO_TICKS(1),       // off
+    pdMS_TO_TICKS(10),      // off
     pdMS_TO_TICKS(10000)};  // on
 
   static constexpr std::array<TickType_t, NUM_PERIODS> WIFI_CONNECTION_PATTERN{

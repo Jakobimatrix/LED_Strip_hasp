@@ -89,9 +89,6 @@ class Task {
 
   std::atomic<bool> stopRequested{false};
 
-  void sleepFixedRate(TickType_t period);
-  void sleepFixedDelay(TickType_t delay);
-
   /**
    * @brief Thin wrapper that creates an RTOS task.
    *
@@ -120,6 +117,15 @@ class Task {
 #else
   constexpr static BaseType_t NonRealTimeCore{0};
 #endif
+
+  void sleepFixedRate(TickType_t period);
+  void sleepFixedDelay(TickType_t delay);
+  /**
+   * @brief Sets internal cycle_start_tick to now. Is automatically been done in
+   * setup. But should be done in the task functions at its start as well if
+   * sleepFixedRateis used. Otherwise the first loop will have a wrong timeing.
+   */
+  void startCycleTime();
 
   /**
    * @brief Task shutdown hook to implement by subclasses.
@@ -155,6 +161,8 @@ class Task {
    * @return `true` if the task was successfully started; `false` on error.
    */
   [[nodiscard]] bool start();
+
+
 
   /**
    * @brief Request the task to stop and perform shutdown.

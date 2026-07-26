@@ -288,12 +288,9 @@ WIFI_STATUS TaskWIFI::getWifiStatus() const {
 
 
 bool TaskWIFI::setup() {
-  return pdPASS == createTask(wifiTask,
-                              "WIFI Task",
-                              TaskWIFI::STACK_DEPTH,
-                              this,
-                              task::WIFI_TASK_PRIORITY,
-                              Task::NonRealTimeCore);
+  return pdPASS ==
+         createTask(
+           wifiTask, "WiFi", TaskWIFI::STACK_DEPTH, this, task::WIFI_TASK_PRIORITY, Task::NonRealTimeCore);
 }
 
 void TaskWIFI::setWifiOn(bool on) {

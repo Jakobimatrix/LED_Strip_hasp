@@ -8,14 +8,19 @@ task::TaskBlinkOnboardLED taskBlinkOnboardLED;
 
 
 void setup() {
+  Serial.begin(115200);
+  delay(1500);
+  Serial.println("BOOT: serial ready");
+
   if (!taskDebugging.start()) {
-    Serial.begin(9600);
-    Serial.println("Failed to start debugger task.");
+    Serial.println("BOOT: Failed to start debugger task.");
   }
 
   if (!taskBlinkOnboardLED.start()) {
-    Serial.println("Failed to start LED blink task.");
+    Serial.println("BOOT: Failed to start LED blink task.");
   }
+
+  Serial.println("BOOT: setup done.");
 }
 
 void loop() {

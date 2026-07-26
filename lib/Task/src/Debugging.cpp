@@ -18,9 +18,9 @@ void debuggerTask(void* pvParameters) {
 
   while (!self->isStopRequested()) {
     self->logStackHighWaterMark(dbg::TOPIC::PERF);
-    vTaskDelay(pdMS_TO_TICKS(20));
+    self->sleepFixedDelay(pdMS_TO_TICKS(20));
     while (serializer.printNext()) {
-      vTaskDelay(pdMS_TO_TICKS(5));
+      self->sleepFixedDelay(pdMS_TO_TICKS(5));
     }
   }
 
@@ -28,18 +28,14 @@ void debuggerTask(void* pvParameters) {
 }
 
 bool TaskDebugging::setup() {
-  Serial.begin(9600);
   return pdPASS == createTask(debuggerTask,
-                              "Debugger Task",
+                              "Printer",
                               TaskDebugging::STACK_DEPTH,
                               this,
                               task::DEBUG_TASK_PRIORITY,
                               Task::NonRealTimeCore);
 }
 
-void TaskDebugging::shutdown() {
-  Serial.end();
-  deleteHandle();
-}
+void TaskDebugging::shutdown() { deleteHandle(); }
 
 }  // namespace task
