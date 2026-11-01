@@ -16,7 +16,7 @@
 
 #include <array>
 
-#include <Hardware.hpp>
+#include <Hardware/BoardHeader.hpp>
 
 #include <Task/Task.hpp>
 #include <Task/WIFI.hpp>

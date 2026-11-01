@@ -16,7 +16,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Hardware.hpp>
+#include <Hardware/BoardHeader.hpp>
 
 #include <Types/StaticString.hpp>
 #include <Debugger/Constants.hpp>
