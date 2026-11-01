@@ -37,7 +37,16 @@ class TaskBlinkOnboardLED : public Task {
 
   TaskWIFI taskWiFi;
 
+  /**
+   * @brief Handle WiFi task operations and state changes.
+   *
+   * This function checks the current WiFi status and updates the LED
+   * pattern accordingly. It also handles any necessary WiFi operations
+   * based on the current state.
+   */
   void handleWiFiTask();
+
+  void handleBootButtonPress();
 
   /**
    * @brief Perform one-time initialization for the blink task.
@@ -54,6 +63,11 @@ class TaskBlinkOnboardLED : public Task {
 
   /** @brief GPIO pin number used for the onboard LED. */
   int ledPin{ON_BOARD_LED_PIN};
+  /** @brief GPIO pin number used for the boot button. */
+  int bootPin{ON_BOARD_BOOT_PIN};
+
+  constexpr static TickType_t BOOT_BUTTON_PRESS_RESET_TIME{pdMS_TO_TICKS(1000)};
+  TickType_t lastBootButtonPressTime{0};
 
   constexpr static size_t NUM_PERIODS{6};
   size_t current_period_index{NUM_PERIODS};
@@ -64,6 +78,7 @@ class TaskBlinkOnboardLED : public Task {
     NEED_PROVISIONING,
     WIFI_CONNECTION,
     NO_WIFI_ERROR,
+    BOOT_PRESSED,
     IDLE,
   };
 
@@ -108,6 +123,14 @@ class TaskBlinkOnboardLED : public Task {
     pdMS_TO_TICKS(2000),   // on
     pdMS_TO_TICKS(100),    // off
     pdMS_TO_TICKS(2000)};  // on
+
+  static constexpr std::array<TickType_t, NUM_PERIODS> BOOT_PRESSED_PATTERN{
+    pdMS_TO_TICKS(100),    // off
+    pdMS_TO_TICKS(100),    // on
+    pdMS_TO_TICKS(100),    // off
+    pdMS_TO_TICKS(100),    // on
+    pdMS_TO_TICKS(100),    // off
+    pdMS_TO_TICKS(1000)};  // on
 
 
  public:

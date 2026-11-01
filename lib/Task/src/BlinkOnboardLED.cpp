@@ -19,23 +19,35 @@ void ledBlinkTask(void* pvParameters) {
     self->ledState = (self->ledState == LOW) ? HIGH : LOW;
 
     self->handleWiFiTask();
+    self->handleBootButtonPress();
 
     self->logStackHighWaterMark(dbg::TOPIC::LED);
 
-
-    if (digitalRead(RESET_PIN) == LOW) {
-      delay(50);  // debounce
-      if (digitalRead(RESET_PIN) == LOW) {
-        // self->taskWiFi.resetWiFi();
-        glob::dbgLedLogger.log(dbg::LEVEL::INFO,
-                               dbg::TOPIC::LED,
-                               "Reset detected. Cleared credentials.");
-      }
-    }
     self->sleepFixedRate(self->getPeriodSleep());
   }
 
   self->shutdown();
+}
+
+void TaskBlinkOnboardLED::handleBootButtonPress() {
+  if (digitalRead(bootPin) != LOW) {
+    lastBootButtonPressTime = 0;
+    return;
+  }
+  // Button pressed
+  current_led_pattern = LED_PATTERN::BOOT_PRESSED;
+  if (lastBootButtonPressTime == 0) {
+    lastBootButtonPressTime = xTaskGetTickCount();
+    return;
+  }
+  const TickType_t now = xTaskGetTickCount();
+  if (now - lastBootButtonPressTime < BOOT_BUTTON_PRESS_RESET_TIME) {
+    glob::dbgLedLogger.log(
+      dbg::LEVEL::INFO, dbg::TOPIC::LED, "Reset detected. Cleared credentials.");
+    taskWiFi.resetWiFi();
+    ESP.restart();
+    return;
+  }
 }
 
 void TaskBlinkOnboardLED::handleWiFiTask() {
@@ -87,6 +99,8 @@ TickType_t TaskBlinkOnboardLED::getPeriodSleep() {
       return NO_WIFI_ERROR_PATTERN[current_period_index];
     case LED_PATTERN::IDLE:
       return IDLE_PATTERN[current_period_index];
+    case LED_PATTERN::BOOT_PRESSED:
+      return BOOT_PRESSED_PATTERN[current_period_index];
     default:
       return HEART_BEAT_PATTERN[current_period_index];
   }
@@ -95,7 +109,7 @@ TickType_t TaskBlinkOnboardLED::getPeriodSleep() {
 bool TaskBlinkOnboardLED::setup() {
   name = "BlinkOnboardLED";
   pinMode(ledPin, OUTPUT);
-  pinMode(RESET_PIN, INPUT_PULLUP);
+  pinMode(bootPin, INPUT_PULLUP);
   return pdPASS == createTask(ledBlinkTask,
                               "LED Blink Task",
                               TaskBlinkOnboardLED::STACK_DEPTH,

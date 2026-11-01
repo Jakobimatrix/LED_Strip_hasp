@@ -1,4 +1,5 @@
 #include <Task/WIFI.hpp>
+#include <Task/ProvisioningWiFi.hpp>
 #include <Globals.hpp>
 #include <Task/TaskPriority.hpp>
 
@@ -6,8 +7,14 @@
 #include <WiFi.h>
 #include <Arduino.h>
 
+#include <memory>
+
 
 namespace task {
+
+TaskWIFI::TaskWIFI() {
+  provisioning_task.registerProvisioning(std::make_unique<ProvisioningWiFi>());
+}
 
 
 void wifiTask(void* pvParameters) {

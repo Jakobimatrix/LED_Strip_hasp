@@ -21,4 +21,5 @@
 
 #define BOARD_NUM_CORES  1
 #define ON_BOARD_LED_PIN 15
-#define RESET_PIN        0
+
+#define ON_BOARD_BOOT_PIN 9
