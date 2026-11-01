@@ -66,9 +66,6 @@ class TaskBlinkOnboardLED : public Task {
   /** @brief GPIO pin number used for the boot button. */
   int bootPin{ON_BOARD_BOOT_PIN};
 
-  constexpr static TickType_t BOOT_BUTTON_PRESS_RESET_TIME{pdMS_TO_TICKS(1000)};
-  TickType_t lastBootButtonPressTime{0};
-
   constexpr static size_t NUM_PERIODS{6};
   size_t current_period_index{NUM_PERIODS};
   TickType_t getPeriodSleep();
@@ -132,6 +129,10 @@ class TaskBlinkOnboardLED : public Task {
     pdMS_TO_TICKS(100),    // off
     pdMS_TO_TICKS(1000)};  // on
 
+  constexpr static TickType_t BOOT_BUTTON_PRESS_RESET_TIME{
+    BOOT_PRESSED_PATTERN[0] + BOOT_PRESSED_PATTERN[1] + BOOT_PRESSED_PATTERN[2] +
+    BOOT_PRESSED_PATTERN[3] + BOOT_PRESSED_PATTERN[4] + BOOT_PRESSED_PATTERN[5]};
+  TickType_t lastBootButtonPressTime{0};
 
  public:
   /**
