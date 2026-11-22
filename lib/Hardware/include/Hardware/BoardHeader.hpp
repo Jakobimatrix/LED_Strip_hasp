@@ -24,7 +24,7 @@
  * @brief Build-time macro naming the board header to include.
  *
  * `BOARD_HEADER` must be defined as a quoted header filename. For
- * example: `-DBOARD_HEADER="Hardware/BoardHeader/SEED_XIAO_ESP32_C6.hpp"`
+ * example: `-DBOARD_HEADER="BoardHeader/SEED_XIAO_ESP32_C6.hpp"`
  * passed to the compiler. The target header will be included below via
  * `#include BOARD_HEADER`.
  *
@@ -35,7 +35,7 @@
 // BOARD_HEADER should be a quoted header filename, e.g. "SEED_XIAO_ESP32_C6.hpp"
 #ifndef BOARD_HEADER
 #error \
-  "BOARD_HEADER must be defined as a quoted header filename (e.g. -DBOARD_HEADER=\"Hardware/BoardHeader/SEED_XIAO_ESP32_C6.hpp\")"
+  "BOARD_HEADER must be defined as a quoted header filename (e.g. -DBOARD_HEADER=\"BoardHeader/SEED_XIAO_ESP32_C6.hpp\")"
 #endif
 
 

@@ -23,3 +23,5 @@
 #define ON_BOARD_LED_PIN 15
 
 #define ON_BOARD_BOOT_PIN 9
+
+#define PINOUT_GPIO17 17

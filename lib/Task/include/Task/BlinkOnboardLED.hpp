@@ -20,6 +20,8 @@
 
 #include <Task/Task.hpp>
 #include <Task/WIFI.hpp>
+#include <Task/Sensors.hpp>
+
 
 namespace task {
 /**
@@ -37,6 +39,11 @@ class TaskBlinkOnboardLED : public Task {
 
   TaskWIFI taskWiFi;
 
+  TaskSensors taskSensors;
+
+  TickType_t m_lastTemperatureMeasurementTime{0};
+  TickType_t m_lastDistanceMeasurementTime{0};
+
   /**
    * @brief Handle WiFi task operations and state changes.
    *
@@ -46,6 +53,22 @@ class TaskBlinkOnboardLED : public Task {
    */
   void handleWiFiTask();
 
+  /**
+   * @brief Handle sensor task operations and state changes.
+   *
+   * This function checks the current sensor measurements and acts
+   * uppon it
+   */
+  void handleSensorsTask();
+
+  /**
+   * @brief Handle boot button press events.
+   *
+   * This function checks the state of the boot button and performs
+   * actions based on the button press duration. If the button is pressed
+   * for a specific duration, it triggers a reset of WiFi credentials and
+   * restarts the device.
+   */
   void handleBootButtonPress();
 
   /**

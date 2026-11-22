@@ -14,7 +14,8 @@ void debuggerTask(void* pvParameters) {
                                     glob::debugWiFiProvQueue,
                                     glob::debugWiFiQueue,
                                     glob::debugMqttQueue,
-                                    glob::debugLedQueue);
+                                    glob::debugLedQueue,
+                                    glob::debugMeasurementsQueue);
 
   while (!self->isStopRequested()) {
     self->logStackHighWaterMark(dbg::TOPIC::PERF);

@@ -18,8 +18,19 @@ constexpr bool write_arg(uint8_t*& ptr, const uint8_t* start, size_t size, const
   }
 
   if constexpr (ArgTraits<std::decay_t<T>>::type == ArgType::CString) {
-    const uint16_t len =
-      static_cast<uint16_t>(std::strlen(reinterpret_cast<const char*>(value)));
+    const char* data;
+    size_t unbounded_len;
+
+    if constexpr (std::is_same_v<std::decay_t<T>, std::string_view>) {
+      data          = value.data();
+      unbounded_len = value.size();
+    } else {
+      data = reinterpret_cast<const char*>(value);
+      unbounded_len = data == nullptr ? 0 : std::strlen(data);
+    }
+
+    unbounded_len = unbounded_len > UINT16_MAX ? UINT16_MAX : unbounded_len;
+    const uint16_t len = static_cast<uint16_t>(unbounded_len);
     const size_t need = 1 + sizeof(len) + static_cast<size_t>(len);
     if (need > (size - used)) {
       return false;  // buffer overflow
@@ -28,7 +39,9 @@ constexpr bool write_arg(uint8_t*& ptr, const uint8_t* start, size_t size, const
     std::memcpy(ptr, &len, sizeof(len));
     ptr += sizeof(len);
 
-    std::memcpy(ptr, value, len);
+    if (len > 0) {
+      std::memcpy(ptr, data, len);
+    }
     ptr += len;
   } else {
     const size_t need = 1 + sizeof(T);

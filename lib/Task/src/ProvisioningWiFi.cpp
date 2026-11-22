@@ -1,6 +1,6 @@
 #include <Task/ProvisioningWiFi.hpp>
 
-#include <Credentials.hpp>
+#include <Settings/Credentials.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -65,7 +65,7 @@ typ::StaticString<16> toString(const wl_status_t status) {
 namespace task {
 
 std::vector<ProvisioningId> ProvisioningWiFi::setUp() {
-  glob::Credentials& credentials = glob::Credentials::getInstance();
+  settings::Credentials& credentials = settings::Credentials::getInstance();
   if (credentials.hasCredentials()) {
     ssid       = credentials.getSSID();
     manualSSID = ssid;
@@ -134,7 +134,7 @@ std::vector<ProvisioningError> ProvisioningWiFi::validate(std::vector<String> in
 }
 
 void ProvisioningWiFi::save() {
-  glob::Credentials& credentials = glob::Credentials::getInstance();
+  settings::Credentials& credentials = settings::Credentials::getInstance();
   credentials.save(ssid, password);
   WiFi.begin(credentials.getSSID().c_str(), credentials.getPassword().c_str());
   WiFi.setAutoReconnect(true);

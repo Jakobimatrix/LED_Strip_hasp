@@ -2,6 +2,8 @@
 #include <Task/ProvisioningWiFi.hpp>
 #include <Globals.hpp>
 #include <Task/TaskPriority.hpp>
+#include <Settings/Credentials.hpp>
+
 
 
 #include <WiFi.h>
@@ -83,7 +85,7 @@ void wifiTask(void* pvParameters) {
 }
 
 bool TaskWIFI::needsProvisioning() const {
-  glob::Credentials& credentials{glob::Credentials::getInstance()};
+  settings::Credentials& credentials{settings::Credentials::getInstance()};
   return !credentials.hasCredentials();
 }
 
@@ -113,7 +115,7 @@ void TaskWIFI::resetWiFi() {
   const bool eraseCredentials{true};
   WiFi.scanDelete();
   WiFi.disconnectAsync(turnWiFiRadioOff, eraseCredentials);
-  glob::Credentials& credentials{glob::Credentials::getInstance()};
+  settings::Credentials& credentials{settings::Credentials::getInstance()};
   credentials.clear();
   startWiFi();
 }

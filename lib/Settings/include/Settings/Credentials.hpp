@@ -7,12 +7,14 @@
  * @version 1.0
  */
 #include <WString.h>
+#include <Preferences.h>
 
-namespace glob {
+namespace settings {
 
 class Credentials {
-  String ssid;
-  String password;
+  String m_ssid;
+  String m_password;
+  Preferences m_preferences;
 
 
   /**
@@ -50,13 +52,13 @@ class Credentials {
    * @brief Get the stored SSID.
    * @return The SSID as a `String`. If no SSID is stored, returns an empty string.
    */
-  String getSSID() const { return ssid; }
+  String getSSID() const { return m_ssid; }
 
   /**
    * @brief Get the stored password.
    * @return The password as a `String`. If no password is stored, returns an empty string.
    */
-  String getPassword() const { return password; }
+  String getPassword() const { return m_password; }
 
   /**
    * @brief Save new credentials to persistent storage.
@@ -79,4 +81,4 @@ class Credentials {
 };
 
 
-}  // namespace glob
+}  // namespace settings

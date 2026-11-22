@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <concepts>
+#include <string_view>
 #include <type_traits>
 
 /**
@@ -231,6 +232,16 @@ struct ArgTraits<const char*> {
  */
 template <>
 struct ArgTraits<char*> {
+  static constexpr bool supported = true;
+  static constexpr ArgType type   = ArgType::CString;
+};
+
+/**
+ * @brief `ArgTraits` specialization for `std::string_view`.
+ * @tparam (specialization) `std::string_view`
+ */
+template <>
+struct ArgTraits<std::string_view> {
   static constexpr bool supported = true;
   static constexpr ArgType type   = ArgType::CString;
 };

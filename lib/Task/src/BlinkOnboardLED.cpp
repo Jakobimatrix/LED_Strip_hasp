@@ -4,6 +4,7 @@
 
 #include <Globals.hpp>
 #include <Task/TaskPriority.hpp>
+#include <Task/Sensors.hpp>
 
 namespace task {
 
@@ -19,6 +20,7 @@ void ledBlinkTask(void* pvParameters) {
     self->ledState = (self->ledState == LOW) ? HIGH : LOW;
 
     self->handleWiFiTask();
+    self->handleSensorsTask();
     self->handleBootButtonPress();
 
     self->logStackHighWaterMark(dbg::TOPIC::LED);
@@ -47,6 +49,42 @@ void TaskBlinkOnboardLED::handleBootButtonPress() {
     taskWiFi.resetWiFi();
     ESP.restart();
     return;
+  }
+}
+
+void TaskBlinkOnboardLED::handleSensorsTask() {
+  if (!taskSensors.isRunning()) {
+    const bool success{taskSensors.start()};
+    if (!success) {
+      glob::dbgLedLogger.log(
+        dbg::LEVEL::INFO, dbg::TOPIC::LED, "Failed to start Sensors Task!");
+    }
+    return;
+  }
+
+  // do we have new temperature measurements?
+  if (m_lastTemperatureMeasurementTime != taskSensors.getLastTemperatureMeasurementTime()) {
+    m_lastTemperatureMeasurementTime = taskSensors.getLastTemperatureMeasurementTime();
+    const std::array<float, TaskSensors::NUM_TEMPERATURE_SENSORS> temperatures{
+      taskSensors.getLastTemperatureMeasurements()};
+    for (size_t i = 0; i < temperatures.size(); ++i) {
+      const float temp = temperatures[i];
+      glob::dbgLedLogger.log(dbg::LEVEL::INFO,
+                             dbg::TOPIC::MEASURE,
+                             "Temperature measurement for sensor: ",
+                             i,
+                             " is: ",
+                             temp,
+                             "C");
+    }
+  }
+
+  // do we have new distance measurements?
+  if (m_lastDistanceMeasurementTime != taskSensors.getLastDistanceMeasurementTime()) {
+    m_lastDistanceMeasurementTime = taskSensors.getLastDistanceMeasurementTime();
+    const float distances{taskSensors.getLastDistanceMeasurement()};
+    glob::dbgLedLogger.log(
+      dbg::LEVEL::INFO, dbg::TOPIC::MEASURE, "New distance measurements: ", distances);
   }
 }
 

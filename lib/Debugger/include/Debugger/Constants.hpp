@@ -50,6 +50,8 @@ enum class LEVEL : unsigned long {
  * Topics let the logger group and optionally filter messages by
  * subsystem (MQTT, BOOT, TASK, etc.). Values are distinct bitflags
  * for efficient combination and testing.
+ *
+ * ! WHEN ADDING NEW TOPICS, UPDATE `NUM_TOPICS` AND `TOPIC_LOOKUP` BELOW + lib\Debugger\src\Logger.cpp
  */
 enum class TOPIC : unsigned long {
   NONE     = 0x00000000, /**< No specific topic. */
@@ -60,7 +62,8 @@ enum class TOPIC : unsigned long {
   WIFI     = 0x00000010, /**< WiFi subsystem. */
   WIFIPROV = 0x00000020, /**< WiFi provisioning. */
   LED      = 0x00000040, /**< LED handling / animations. */
-  PERF     = 0x00000080  /**< Performance / profiling related messages. */
+  PERF     = 0x00000080, /**< Performance / profiling related messages. */
+  MEASURE  = 0x00000100, /**< Sensor measurement related messages. */
 };
 
 // clang-format off
@@ -90,7 +93,7 @@ static constexpr typ::Map<LEVEL, const char*, NUM_LEVELS> LEVEL_LOOKUP{{
 /**
  * @brief Number of entries in `TOPIC_LOOKUP`.
  */
-static constexpr unsigned NUM_TOPICS = 9;
+static constexpr unsigned NUM_TOPICS = 10;
 
 /**
  * @brief Lookup table mapping `TOPIC` values to fixed-width labels.
@@ -108,7 +111,8 @@ static constexpr typ::Map<TOPIC, const char *, NUM_TOPICS> TOPIC_LOOKUP{{
   {TOPIC::WIFI,      "[WIFI]       "},
   {TOPIC::WIFIPROV,  "[WIFIPROVISN]"},
   {TOPIC::LED,       "[LED]        "},
-  {TOPIC::PERF,      "[PERFORMANCE]"}
+  {TOPIC::PERF,      "[PERFORMANCE]"},
+  {TOPIC::MEASURE,   "[MEASUREMENT]"}
 }};
 
 // clang-format on

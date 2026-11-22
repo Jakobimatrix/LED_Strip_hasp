@@ -15,7 +15,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Preferences.h>
 
 #include <Enums/ExpandEnums.hpp>
 #include <Debugger/Constants.hpp>
@@ -26,8 +25,6 @@
 
 
 namespace glob {
-
-extern Preferences prefs;
 
 
 /**
@@ -65,6 +62,9 @@ extern DebugQueue<16, 128> debugWiFiProvQueue;
 /** @brief Queue for LED debug messages.*/
 extern DebugQueue<32, 128> debugLedQueue;
 
+/** @brief Queue for Measurements debug messages.*/
+extern DebugQueue<4, 128> debugMeasurementsQueue;
+
 /** @brief Queue for shared debug messages USES MUTEX.*/
 extern DebugQueue<16, 128> sharedQueue;
 
@@ -78,6 +78,8 @@ extern DebugQueue<16, 128> sharedQueue;
  * Each `dbg::Logger` instance is parameterized with the concrete queue
  * type it uses. The logger objects provide formatted logging and topic
  * filtering as implemented in `Debugger::Logger`.
+ *
+ * ! IF YOU ADD NE LOGGER: add it to the list of loggers in constructer lib/Debugger/src/Logger.cpp
  */
 /*@{*/
 /** @brief Logger instance for WiFi messages (writes to `debugWiFiQueue`). */
@@ -91,6 +93,9 @@ extern dbg::Logger<decltype(debugMqttQueue)> dbgMqttLogger;
 
 /** @brief Logger instance for LED subsystem messages (writes to `debugLedQueue`). */
 extern dbg::Logger<decltype(debugLedQueue)> dbgLedLogger;
+
+/** @brief Logger instance for Measurements subsystem messages (writes to `debugMeasurementsQueue`). */
+extern dbg::Logger<decltype(debugMeasurementsQueue)> dbgMeasurementsLogger;
 
 /** @brief Logger instance for shared debug messages (writes to `sharedQueue`) USES MUTEX. */
 extern dbg::Logger<decltype(sharedQueue), true> dbgTaskLogger;
